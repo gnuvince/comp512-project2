@@ -1,0 +1,7 @@
+*.class
+*.jar
+*~
+*/bin/
+*.aux
+*.dvi
+*.log
