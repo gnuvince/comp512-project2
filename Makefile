@@ -1,6 +1,9 @@
 BINDIR=make-bin
+CARPORT=5006
 
-compile: servercode clientcode carcode jarfile
+all: compile jarfile
+
+compile: servercode clientcode carcode 
 
 servercode:
 	mkdir -p $(BINDIR)
@@ -17,7 +20,12 @@ carcode:
 	mkdir -p $(BINDIR)
 	javac -d $(BINDIR) -cp $(BINDIR) src/carcode/ResImpl/*.java
 
-jarfile:
+runcar: compile
+	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(CARPORT) &
+	java -cp $(BINDIR) carcode.ResImpl.CarManagerImpl localhost $(CARPORT)
+	
+
+jarfile: compile
 	jar cvf ResInterface.jar -C $(BINDIR) servercode/ResInterface/ItemManager.class -C $(BINDIR) servercode/ResInterface/ResourceManager.class
 
 clean:
