@@ -3,6 +3,8 @@ package servercode.ResInterface;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import LockManager.DeadlockException;
+
 import servercode.ResImpl.ReservedItem;
 
 public interface ItemManager extends Remote {
@@ -17,9 +19,10 @@ public interface ItemManager extends Remote {
      * @param price
      * @return true if operation succeeded, false otherwise
      * @throws RemoteException
+     * @throws DeadlockException 
      */
     public boolean addItem(int id, String itemId, int quantity, int price)
-        throws RemoteException;
+        throws RemoteException, DeadlockException;
 
     /**
      * Delete an item from the manager's hash table.
@@ -30,8 +33,9 @@ public interface ItemManager extends Remote {
      *            location or flight number to delete
      * @return true if operation succeeded, false otherwise
      * @throws RemoteException
+     * @throws DeadlockException 
      */
-    public boolean deleteItem(int id, String itemId) throws RemoteException;
+    public boolean deleteItem(int id, String itemId) throws RemoteException, DeadlockException;
 
     /**
      * Return the number of available items of the given itemId.
@@ -42,8 +46,9 @@ public interface ItemManager extends Remote {
      *            location or flight number
      * @return number of available items; 0 if itemId does not exist
      * @throws RemoteException
+     * @throws DeadlockException 
      */
-    public int queryItemQuantity(int id, String itemId) throws RemoteException;
+    public int queryItemQuantity(int id, String itemId) throws RemoteException, DeadlockException;
 
     /**
      * Return the price of the given itemId.
@@ -54,8 +59,9 @@ public interface ItemManager extends Remote {
      *            location or flight number
      * @return price of the item; 0 if itemId does not exist
      * @throws RemoteException
+     * @throws DeadlockException 
      */
-    public int queryItemPrice(int id, String itemId) throws RemoteException;
+    public int queryItemPrice(int id, String itemId) throws RemoteException, DeadlockException;
 
     /**
      * Make a reservation of itemId for customer. The reservation is done in
@@ -70,9 +76,10 @@ public interface ItemManager extends Remote {
      *            location or flight number
      * @return true if reservation is successful, false otherwise
      * @throws RemoteException
+     * @throws DeadlockException 
      */
     public ReservedItem reserveItem(int id, String customerId, String itemId)
-        throws RemoteException;
+        throws RemoteException, DeadlockException;
 
     /**
      * Cancel a reservation - item quantity is adjusted in hash table
@@ -85,7 +92,18 @@ public interface ItemManager extends Remote {
      *            the number of item being cancelled
      * @return true if cancellation is successful, false otherwise
      * @throws RemoteException
+     * @throws DeadlockException 
      */
     public boolean cancelItem(int id, String itemId, int count)
-        throws RemoteException;
+        throws RemoteException, DeadlockException;
+    
+    /**
+     * Commit a transaction.
+     * 
+     * @param id
+     *            TXN id
+     * @return true if commit is successful, false otherwise
+     * @throws RemoteException
+     */
+    public boolean commit(int id) throws RemoteException;
 }

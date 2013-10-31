@@ -256,6 +256,13 @@ public class ResourceManagerImpl implements ResourceManager {
     // current price
     public boolean addFlight(int id, int flightNum, int flightSeats,
         int flightPrice) throws RemoteException {
+    	
+    	
+    	/*	txnMan.enlist(id);
+    	 * 	
+    	 */
+    	
+    	
         Trace.info("RM::addFlight(" + id + ", " + flightNum + ", $"
             + flightPrice + ", " + flightSeats + ") called");
 

@@ -14,10 +14,13 @@ import java.util.concurrent.Executors;
 
 import servercode.ResInterface.*;
 import servercode.ResImpl.*;
+import LockManager.*;
 
 public class CarManagerImpl implements ItemManager {
 
     protected RMHashtable carTable = new RMHashtable();
+    
+    private LockManager lm = new LockManager();
 
     public static void main(String args[]) {
         // Figure out where server is running
@@ -33,9 +36,7 @@ public class CarManagerImpl implements ItemManager {
             server = args[0];
             port = Integer.parseInt(args[1]);
         }
-
-
-
+        
         try 
         {
             // create a new Server object
@@ -65,8 +66,15 @@ public class CarManagerImpl implements ItemManager {
 
     @Override
     public boolean addItem(int id, String location, int quantity, int price)
-        throws RemoteException {
+        throws RemoteException, DeadlockException {
 
+    	try {
+    		lm.Lock(id, location, LockType.WRITE);
+    		
+    	} catch (DeadlockException deadlock) {
+            throw new DeadlockException(id, location);
+        }  
+    	
         Car curObj = (Car) fetchCar(id, Car.getKey(location));
         if (curObj == null) {
             // If Car doesn't exist, create it and add it to 
@@ -94,8 +102,15 @@ public class CarManagerImpl implements ItemManager {
     }
 
     @Override
-    public boolean deleteItem(int id, String location) throws RemoteException {
-
+    public boolean deleteItem(int id, String location) throws RemoteException, DeadlockException {
+    	
+    	try {
+    		lm.Lock(id, location, LockType.WRITE);
+    		
+    	} catch (DeadlockException deadlock) {
+            throw new DeadlockException(id, location);
+        }
+    	
         String itemId = Car.getKey(location);
         Car curObj = fetchCar(id, itemId);
 
@@ -123,7 +138,15 @@ public class CarManagerImpl implements ItemManager {
     }
 
     @Override
-    public int queryItemQuantity(int id, String location) throws RemoteException {
+    public int queryItemQuantity(int id, String location) throws RemoteException, DeadlockException {
+    	
+    	try {
+    		lm.Lock(id, location, LockType.READ);
+    		
+    	} catch (DeadlockException deadlock) {
+            throw new DeadlockException(id, location);
+        }    	
+    	
         Car curObj = fetchCar(id, Car.getKey(location));
         if (curObj != null) {
             return curObj.getCount();
@@ -133,7 +156,15 @@ public class CarManagerImpl implements ItemManager {
     }
 
     @Override
-    public int queryItemPrice(int id, String location) throws RemoteException {
+    public int queryItemPrice(int id, String location) throws RemoteException, DeadlockException {
+    	
+    	try {
+    		lm.Lock(id, location, LockType.READ);
+    		
+    	} catch (DeadlockException deadlock) {
+            throw new DeadlockException(id, location);
+        }  
+    	
         Car curObj = fetchCar(id, Car.getKey(location));
         if (curObj != null) {
             return curObj.getPrice();
@@ -144,8 +175,14 @@ public class CarManagerImpl implements ItemManager {
 
     @Override
     public ReservedItem reserveItem(int id, String customerId, String location)
-        throws RemoteException {
+        throws RemoteException, DeadlockException {
 
+    	try {
+    		lm.Lock(id, location, LockType.WRITE);    		
+    	} catch (DeadlockException deadlock) {
+            throw new DeadlockException(id, location);
+        }  
+    	
         Car curObj = fetchCar(id, Car.getKey(location));
 
         if (curObj == null) {        	
@@ -171,16 +208,24 @@ public class CarManagerImpl implements ItemManager {
     }
 
     public boolean cancelItem(int id, String carKey, int count)
-        throws RemoteException {
-
-        System.out.println("cancelItem( " + id + ", " + carKey + ", " + count + " )");
-
-        Car curObj = fetchCar(id, carKey);
-        if (curObj == null) {
+        throws RemoteException, DeadlockException {
+    	
+    	Car curObj = fetchCar(id, carKey);
+    	if (curObj == null) {
             System.out.println("Car " + carKey + " can't be cancelled because none exists");
             return false;
         }
+    	
+    	String location = curObj.getLocation();
+    	
+    	try {
+    		lm.Lock(id, location, LockType.WRITE);    		
+    	} catch (DeadlockException deadlock) {
+            throw new DeadlockException(id, location);
+        }  
 
+        System.out.println("cancelItem( " + id + ", " + carKey + ", " + count + " )");
+        
         //adjust available quantity
         curObj.setCount(curObj.getCount() + count);
         curObj.setReserved(curObj.getReserved() - count);
@@ -205,6 +250,12 @@ public class CarManagerImpl implements ItemManager {
             carTable.remove(itemId);
         }
     }
+
+	@Override
+	public boolean commit(int id) throws RemoteException {
+				
+		return lm.UnlockAll(id);
+	}
 
 
 }
