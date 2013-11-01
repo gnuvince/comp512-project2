@@ -31,20 +31,21 @@ public class client
         int numCars;
         String location;
 
-
         String server = "localhost";
-        if (args.length == 1)
+        int port = 5005;
+        
+        if (args.length == 2) {
             server = args[0];
-        else if (args.length != 0 &&  args.length != 1)
-        {
-            System.out.println ("Usage: java client [rmihost]");
+        	port = Integer.parseInt(args[1]);
+        } else {
+            System.out.println ("Usage: java client [rmihost] [port]");
             System.exit(1);
         }
 
         try
         {
             // get a reference to the rmiregistry
-            Registry registry = LocateRegistry.getRegistry(server, 5005);
+            Registry registry = LocateRegistry.getRegistry(server, port);
             // get the proxy and the remote reference by rmiregistry lookup
             rm = (ResourceManager) registry.lookup("Group5_ResourceManager");
             if(rm!=null)
@@ -59,12 +60,10 @@ public class client
             // make call on remote method
         }
         catch (Exception e)
-        {
+        {        	
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();
         }
-
-
 
         if (System.getSecurityManager() == null) {
             System.setSecurityManager(new RMISecurityManager());
@@ -551,10 +550,13 @@ public class client
                 try{
                     Id = obj.getInt(arguments.elementAt(1));
                     Cid = obj.getInt(arguments.elementAt(2));
+                    System.out.println("GOOD SO FAR");
                     boolean customer=rm.newCustomer(Id,Cid);
                     System.out.println("new customer id:"+Cid);
                 }
                 catch(Exception e){
+                	System.out.println("CAUGHT EXCEPTION ----- ");
+                	
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
                     e.printStackTrace();

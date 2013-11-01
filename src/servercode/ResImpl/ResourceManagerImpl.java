@@ -14,6 +14,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import LockManager.*;
+
 //public class ResourceManagerImpl extends java.rmi.server.UnicastRemoteObject
 public class ResourceManagerImpl implements ResourceManager {
 
@@ -30,26 +32,23 @@ public class ResourceManagerImpl implements ResourceManager {
         String carServer = "localhost";
         String flightServer = "localhost";
 
-        if (args.length == 3) {
+        if (args.length == 4) {
             hotelServer = args[0];
             carServer = args[1];
             flightServer = args[2];
-
+            port = Integer.parseInt(args[3]);
         }
         else {
             System.err.println("Wrong usage");
-            System.out
-                .println("Usage: java ResImpl.ResourceManagerImpl [hotel server] [car server] [flight server]");
+            System.out.println("Usage: java ResImpl.ResourceManagerImpl [hotel server] [car server] [flight server] [server port");
             System.exit(1);
         }
 
         try {
             // create a new Server object
-            ResourceManagerImpl obj = new ResourceManagerImpl(hotelServer,
-                carServer, flightServer);
+            ResourceManagerImpl obj = new ResourceManagerImpl(hotelServer, carServer, flightServer);
             // dynamically generate the stub (client proxy)
-            ResourceManager rm = (ResourceManager) UnicastRemoteObject
-                .exportObject(obj, 0);
+            ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry(port);
@@ -73,7 +72,7 @@ public class ResourceManagerImpl implements ResourceManager {
         int hotelPort = 5005;
         int carPort = 5006;
         int flightPort = 5007;
-
+/*
         try {
             // get a reference to the rmiregistry on Hotel's server
             Registry registry = LocateRegistry.getRegistry(hotelServer,
@@ -92,7 +91,7 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Hotel exception: " + e.toString());
             e.printStackTrace();
         }
-
+*/
         try {
             Registry registry = LocateRegistry.getRegistry(carServer, carPort);
             rmCar = (ItemManager) registry.lookup("Group5_CarManager");
@@ -107,7 +106,7 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Car exception: " + e.toString());
             e.printStackTrace();
         }
-
+/*
         try {
             Registry registry = LocateRegistry.getRegistry(flightServer,
                 flightPort);
@@ -124,6 +123,7 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Flight exception: " + e.toString());
             e.printStackTrace();
         }
+ */
     }
 
     // Reads a data item
@@ -257,22 +257,31 @@ public class ResourceManagerImpl implements ResourceManager {
     public boolean addFlight(int id, int flightNum, int flightSeats,
         int flightPrice) throws RemoteException {
     	
-    	
-    	/*	txnMan.enlist(id);
-    	 * 	
-    	 */
-    	
-    	
         Trace.info("RM::addFlight(" + id + ", " + flightNum + ", $"
             + flightPrice + ", " + flightSeats + ") called");
 
-        return rmFlight.addItem(id, Integer.toString(flightNum), flightSeats,
-            flightPrice);
+        try {
+        	rmFlight.addItem(id, Integer.toString(flightNum), flightSeats, flightPrice);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+        	
+        	return false;
+        }
+        
+        return true;
     }
 
     public boolean deleteFlight(int id, int flightNum) throws RemoteException {
 
-        return rmFlight.deleteItem(id, Integer.toString(flightNum));
+    	try {
+    		rmFlight.deleteItem(id, Integer.toString(flightNum));
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+
+        	return false;        	
+        }
+    	
+        return true;
     }
 
     // Create a new room location or add rooms to an existing location
@@ -284,14 +293,29 @@ public class ResourceManagerImpl implements ResourceManager {
             + ", $" + price + ") called");
 
         // Call HotelManager
-        return rmHotel.addItem(id, location, count, price);
+    	try {
+    		rmHotel.addItem(id, location, count, price);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+
+        	return false;        	
+        }
+        return true;
     }
 
     // Delete rooms from a location
     public boolean deleteRooms(int id, String location) throws RemoteException {
         Trace.info("RM::deleteRoom(" + id + ", " + location + ")");
 
-        return rmHotel.deleteItem(id, location);
+    	try {
+    		rmHotel.deleteItem(id, location);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+
+        	return false;        	
+        }
+        
+        return true;
     }
 
     // Create a new car location or add cars to an existing location
@@ -302,42 +326,92 @@ public class ResourceManagerImpl implements ResourceManager {
         Trace.info("RM::addCars(" + id + ", " + location + ", " + count + ", $"
             + price + ") called");
 
-        return rmCar.addItem(id, location, count, price);
+    	try {
+    		rmCar.addItem(id, location, count, price);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+
+        	return false;        	
+        }
+        
+        return true;
     }
 
     // Delete cars from a location
     public boolean deleteCars(int id, String location) throws RemoteException {
-        return rmCar.deleteItem(id, location);
+    	
+    	try {
+    		rmCar.deleteItem(id, location);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+
+        	return false;        	
+        }
+    	
+        return true;
     }
 
     // Returns the number of empty seats on this flight
     public int queryFlight(int id, int flightNum) throws RemoteException {
-        return rmFlight.queryItemQuantity(id, Integer.toString(flightNum));
+    	
+    	try {
+    		return rmFlight.queryItemQuantity(id, Integer.toString(flightNum));
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+        	return 0;        	
+        }
+    
     }
 
     // Returns price of this flight
     public int queryFlightPrice(int id, int flightNum) throws RemoteException {
-        return rmFlight.queryItemPrice(id, Integer.toString(flightNum));
+    	try {
+    		return rmFlight.queryItemPrice(id, Integer.toString(flightNum));
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+        	return 0;        	
+        }
+        
     }
 
     // Returns the number of rooms available at a location
-    public int queryRooms(int id, String location) throws RemoteException {
-        return rmHotel.queryItemQuantity(id, location);
+    public int queryRooms(int id, String location) throws RemoteException {    	
+    	try {
+    		return rmHotel.queryItemQuantity(id, location);
+    	} catch (DeadlockException e) {
+    		Trace.error(e.getMessage());
+    		return 0;        	
+    	}        
     }
 
     // Returns room price at this location
     public int queryRoomsPrice(int id, String location) throws RemoteException {
-        return rmHotel.queryItemPrice(id, location);
+    	try {
+    		return rmHotel.queryItemPrice(id, location);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+        	return 0;        	
+        }        
     }
 
     // Returns the number of cars available at a location
     public int queryCars(int id, String location) throws RemoteException {
-        return rmCar.queryItemQuantity(id, location);
+    	try {
+    		return rmCar.queryItemQuantity(id, location);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+        	return 0;        	
+        }        
     }
 
     // Returns price of cars at this location
     public int queryCarsPrice(int id, String location) throws RemoteException {
-        return rmCar.queryItemPrice(id, location);
+    	try {
+    		return rmCar.queryItemPrice(id, location);
+        } catch (DeadlockException e) {
+        	Trace.error(e.getMessage());
+        	return 0;        	
+        }        
     }
 
     // Returns data structure containing customer reservation info. Returns null
@@ -426,8 +500,7 @@ public class ResourceManagerImpl implements ResourceManager {
             return false;
         }
         else {
-            // Increase the reserved numbers of all reservable items which the
-            // customer reserved.
+            // Un-reserve all reservations the customer had made        	
             RMHashtable reservationHT = cust.getReservations();
             for (Enumeration e = reservationHT.keys(); e.hasMoreElements();) {
                 String reservedkey = (String) (e.nextElement());
@@ -440,16 +513,28 @@ public class ResourceManagerImpl implements ResourceManager {
                     + reserveditem.getKey());
                 String itemType = reserveditem.getKey().split("\\-")[0];
                 if (itemType.equals("room")) {
-                    rmHotel.cancelItem(id, reserveditem.getKey(),
-                        reserveditem.getCount());
+                	try {
+                		rmHotel.cancelItem(id, reserveditem.getKey(), reserveditem.getCount());
+                    } catch (DeadlockException exc) {
+                    	Trace.error(exc.getMessage());
+                    	//TODO: Abort TXN
+                    }                    
                 }
                 else if (itemType.equals("car")) {
-                    rmCar.cancelItem(id, reserveditem.getKey(),
-                        reserveditem.getCount());
+                	try {
+                		rmCar.cancelItem(id, reserveditem.getKey(), reserveditem.getCount());
+                    } catch (DeadlockException exc) {
+                    	Trace.error(exc.getMessage());
+                    	//Abort TXN
+                    }                    
                 }
                 else if (itemType.equals("flight")) {
-                    rmFlight.cancelItem(id, reserveditem.getKey(),
-                        reserveditem.getCount());
+                	try {
+                		rmFlight.cancelItem(id, reserveditem.getKey(), reserveditem.getCount());
+                    } catch (DeadlockException exc) {
+                    	Trace.error(exc.getMessage());
+                    	//Abort TXN
+                    }                    
                 }
 
             }
@@ -460,7 +545,7 @@ public class ResourceManagerImpl implements ResourceManager {
             Trace.info("RM::deleteCustomer(" + id + ", " + customerID
                 + ") succeeded");
             return true;
-        } // if
+        } 
     }
 
     // Adds car reservation to this customer.
@@ -472,8 +557,14 @@ public class ResourceManagerImpl implements ResourceManager {
             return false;
         }
 
-        ReservedItem reservedItem = rmCar.reserveItem(id, cust.getKey()/* ? */,
-            location);
+        ReservedItem reservedItem = null;
+        try {
+        	reservedItem = rmCar.reserveItem(id, cust.getKey(), location);
+        } catch (DeadlockException exc) {
+        	Trace.error(exc.getMessage());
+        	//Abort TXN
+        }         
+        
         if (reservedItem != null) {
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(),
                 reservedItem.getPrice());
@@ -492,12 +583,17 @@ public class ResourceManagerImpl implements ResourceManager {
         if (cust == null) {
             return false;
         }
+        
+        ReservedItem reservedItem = null;
+        try {
+        	reservedItem = rmHotel.reserveItem(id, cust.getKey(), location);
+        } catch (DeadlockException exc) {
+        	Trace.error(exc.getMessage());
+        	//Abort TXN
+        }  
 
-        ReservedItem reservedItem = rmHotel.reserveItem(id,
-            cust.getKey()/* ? */, location);
         if (reservedItem != null) {
-            cust.reserve(reservedItem.getKey(), reservedItem.getLocation(),
-                reservedItem.getPrice());
+            cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
 
             return true;
         }
@@ -516,11 +612,16 @@ public class ResourceManagerImpl implements ResourceManager {
 
         String strflightNum = Integer.toString(flightNum);
 
-        ReservedItem reservedItem = rmFlight.reserveItem(id,
-            cust.getKey()/* ? */, strflightNum);
+        ReservedItem reservedItem = null;
+        try {
+        	reservedItem = rmFlight.reserveItem(id, cust.getKey(), strflightNum);
+        } catch (DeadlockException exc) {
+        	Trace.error(exc.getMessage());
+        	//Abort TXN
+        }  
+        
         if (reservedItem != null) {
-            cust.reserve(reservedItem.getKey(), reservedItem.getLocation(),
-                reservedItem.getPrice());
+            cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
             return true;
         }
 
@@ -546,7 +647,7 @@ public class ResourceManagerImpl implements ResourceManager {
         for (int i = 0; i < flightNumbers.size(); i++) {
             int flightNumber = (Integer) flightNumbers.get(i);
 
-            result = reserveFlight(1, customer, flightNumber);
+            result = reserveFlight(id, customer, flightNumber);
 
             // If one flight reservation fails, we cancel the previous flights
             // reserved
@@ -561,30 +662,38 @@ public class ResourceManagerImpl implements ResourceManager {
         }
 
         if (Car) {
-            // Try to reserve a car at destination
-            ReservedItem reservedCar = rmCar.reserveItem(1, cust.getKey(),
-                location);
+            // Try to reserve a car at destination        	
+        	ReservedItem reservedCar = null;
+        	try {
+        		reservedCar = rmCar.reserveItem(1, cust.getKey(), location);
+        	} catch (DeadlockException e) {
+        		Trace.error(e.getMessage());
+        	}
+            
             if (reservedCar == null) {
                 cancelItemBatch(cust, reservedItems);
                 return false;
             }
 
             reservedItems.add(reservedCar.getKey());
-            cust.reserve(reservedCar.getKey(), reservedCar.getLocation(),
-                reservedCar.getPrice());
+            cust.reserve(reservedCar.getKey(), reservedCar.getLocation(), reservedCar.getPrice());
         }
 
         if (Room) {
             // Try to reserve a room at destination
-            ReservedItem reservedRoom = rmHotel.reserveItem(1, cust.getKey(),
-                location);
+        	ReservedItem reservedRoom = null;
+        	try {
+        		reservedRoom = rmHotel.reserveItem(1, cust.getKey(), location);
+        	} catch (DeadlockException e) {
+        		Trace.error(e.getMessage());
+        	}            
+            
             if (reservedRoom == null) {
                 cancelItemBatch(cust, reservedItems);
                 return false;
             }
 
-            cust.reserve(reservedRoom.getKey(), reservedRoom.getLocation(),
-                reservedRoom.getPrice());
+            cust.reserve(reservedRoom.getKey(), reservedRoom.getLocation(), reservedRoom.getPrice());
         }
 
         return true;

@@ -3,8 +3,10 @@ package servercode.ResInterface;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-import LockManager.DeadlockException;
+//import LockManager.*;
 
+
+import LockManager.DeadlockException;
 import servercode.ResImpl.ReservedItem;
 
 public interface ItemManager extends Remote {

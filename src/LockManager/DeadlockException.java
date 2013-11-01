@@ -12,7 +12,7 @@ public class DeadlockException extends Exception {
         this.xid = xid;
     }
 
-    int GetXId() {
+    public int GetXId() {
         return xid;
     }
 }
