@@ -1,0 +1,3 @@
+grant codeBase "file:make-bin" {
+    permission java.security.AllPermission;
+};

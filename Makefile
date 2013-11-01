@@ -1,10 +1,20 @@
 BINDIR=make-bin
+
+SERVERHOST=localhost
 SERVERPORT=5005
+
+CARHOST=localhost
 CARPORT=5006
+
+FLIGHTHOST=localhost
+FLIGHTPORT=5007
+
+HOTELHOST=localhost
+HOTELPORT=5008
 
 all: compile jarfile
 
-compile: lockcode servercode clientcode carcode policy
+compile: lockcode servercode clientcode carcode flightcode hotelcode policy
 
 lockcode:
 	mkdir -p $(BINDIR)
@@ -24,17 +34,33 @@ clientcode:
 carcode:
 	mkdir -p $(BINDIR)
 	javac -d $(BINDIR) -cp $(BINDIR) src/carcode/ResImpl/*.java
+	
+flightcode:
+	mkdir -p $(BINDIR)
+	javac -d $(BINDIR) -cp $(BINDIR) src/flightcode/ResImpl/*.java
+
+hotelcode:
+	mkdir -p $(BINDIR)
+	javac -d $(BINDIR) -cp $(BINDIR) src/hotelcode/ResImpl/*.java
 
 runcar: compile
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(CARPORT) &
-	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl localhost $(CARPORT)
+	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT)
+
+runflight:
+	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(FLIGHTPORT) &
+	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
+
+runhotel:
+	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(HOTELPORT) &
+	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT)
 	
 runserver:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(SERVERPORT) &	
-	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl localhost localhost localhost $(SERVERPORT)
+	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
 	
 runclient:	
-	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client localhost 5005
+	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
 	
 
 jarfile: compile

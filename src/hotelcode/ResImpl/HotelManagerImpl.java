@@ -1,4 +1,4 @@
-package carcode.ResImpl;
+package hotelcode.ResImpl;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -16,26 +16,25 @@ import servercode.ResInterface.*;
 import servercode.ResImpl.*;
 import LockManager.*;
 
-public class CarManagerImpl implements ItemManager {
-
-    protected RMHashtable carTable = new RMHashtable();
+public class HotelManagerImpl implements ItemManager {
+    
+    protected RMHashtable roomsTable = new RMHashtable();
     
     private LockManager lm = new LockManager();
-
+    
     public static void main(String args[]) {
     	
-        int port = 5006;
-        
-        CarManagerImpl obj = new CarManagerImpl();
+        int port = 5008;
+        HotelManagerImpl obj = new HotelManagerImpl();
 
         if (args.length != 1) {            
-            System.err.println("Usage: java carcode.ResImpl.CarManagerImpl <rmi port>");
+            System.err.println("Usage: java hotelcode.ResImpl.HotelManagerImpl <rmi port>");
             System.exit(1);
         }
         else {
             port = Integer.parseInt(args[0]);
         }
-        
+
         try 
         {
             // create a new Server object
@@ -44,9 +43,9 @@ public class CarManagerImpl implements ItemManager {
 
             // Bind the remote object's stub in the registry
             Registry registry = LocateRegistry.getRegistry(port);
-            registry.rebind("Group5_CarManager", rm);
+            registry.rebind("Group5_HotelManager", rm);
 
-            System.err.println("Car Server ready");
+            System.err.println("Hotel Server ready");
         } 
         catch (Exception e) 
         {
@@ -63,37 +62,37 @@ public class CarManagerImpl implements ItemManager {
     @Override
     public boolean addItem(int id, String location, int quantity, int price)
         throws RemoteException, DeadlockException {
-
+    	
     	//Acquire write lock
     	try {
     		lm.Lock(id, location, LockType.WRITE);    		
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, location);
-        }  
+        } 
     	
-        Car curObj = (Car) fetchCar(id, Car.getKey(location));
+        Hotel curObj = (Hotel) fetchHotel(id, Hotel.getKey(location));
         if (curObj == null) {
-            // If Car doesn't exist, create it and add it to 
+            // If hotel doesn't exist, create it and add it to 
             // the manager's hash table.
-            Car newObj = new Car(location, quantity, price);
-            putCar(id, newObj.getKey(), newObj);
-            Trace.info("RM::addCars(" + id + ") created new location "
-                + location + ", count=" + quantity + ", price=$" + price);
+            Hotel newObj = new Hotel(location, quantity, price);
+            putHotel(id, newObj.getKey(), newObj);
+            Trace.info("RM::addHotel(" + id + ") created new location "
+                    + location + ", count=" + quantity + ", price=$" + price);
         }
         else {
-            // If the Car already exists, update its quantity (by adding
+            // If the hotel already exists, update its quantity (by adding
             // the new quantity) and update its price (only if the new price
             // is positive).
             curObj.setCount(curObj.getCount() + quantity);
             if (price > 0) {
                 curObj.setPrice(price);
             }
-            putCar(id, Car.getKey(location), curObj);
-            Trace.info("RM::addCars(" + id + ") modified existing location "
-                + location + ", count=" + curObj.getCount() + ", price=$"
-                + curObj.getPrice());
+            putHotel(id, Hotel.getKey(location), curObj);
+            Trace.info("RM::addHotel(" + id + ") modified existing location "
+                    + location + ", count=" + curObj.getCount() + ", price=$"
+                    + curObj.getPrice());
         }
-
+                
         return true;
     }
 
@@ -106,27 +105,27 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }
     	
-        String itemId = Car.getKey(location);
-        Car curObj = fetchCar(id, itemId);
-
+    	String itemId = Hotel.getKey(location);
+        Hotel curObj = fetchHotel(id, itemId);
+                
         if (curObj == null) {
-            Trace.warn("RM::deleteItem(" + id + ", " + itemId
-                + ") failed--item doesn't exist"); 
+        	Trace.warn("RM::deleteItem(" + id + ", " + itemId
+                    + ") failed--item doesn't exist"); 
             return false;
         }
         else {
             if (curObj.getReserved() == 0) {
-                deleteCar(id, curObj.getKey());
+                deleteHotel(id, curObj.getKey());
                 Trace.info("RM::deleteItem(" + id + ", " + itemId
-                    + ") item deleted");
+                        + ") item deleted");
                 return true;
             }
             else {
-                Trace.info("RM::deleteItem("
-                    + id
-                    + ", "
-                    + itemId
-                    + ") item can't be deleted because some customers reserved it");
+            	Trace.info("RM::deleteItem("
+                        + id
+                        + ", "
+                        + itemId
+                        + ") item can't be deleted because some customers reserved it");
                 return false;
             }
         } 
@@ -139,13 +138,13 @@ public class CarManagerImpl implements ItemManager {
     		lm.Lock(id, location, LockType.READ);    		
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, location);
-        }    	
+        }  
     	
-        Car curObj = fetchCar(id, Car.getKey(location));
+        Hotel curObj = fetchHotel(id, Hotel.getKey(location));
         if (curObj != null) {
             return curObj.getCount();
         }
-
+        
         return 0;
     }
 
@@ -158,56 +157,59 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-        Car curObj = fetchCar(id, Car.getKey(location));
+        Hotel curObj = fetchHotel(id, Hotel.getKey(location));
         if (curObj != null) {
             return curObj.getPrice();
         }
         return 0;   
     }
 
-
+   
     @Override
     public ReservedItem reserveItem(int id, String customerId, String location)
         throws RemoteException, DeadlockException {
-
+    	
     	try {
     		lm.Lock(id, location, LockType.WRITE);    		
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, location);
         }  
-    	
-        Car curObj = fetchCar(id, Car.getKey(location));
-
+    	    	
+        Hotel curObj = fetchHotel(id, Hotel.getKey(location));
+        
         if (curObj == null) {        	
-            Trace.warn("RM::reserveCar( " + id + ", " + customerId + ", " + location + ") failed--item doesn't exist"); 
+        	Trace.warn("RM::reserveRoom( " + id + ", " + customerId + ", " + location + ") failed--item doesn't exist"); 
             return null;
         }
         else if (curObj.getCount() == 0) {
-            Trace.warn("RM::reserveCar( " + id + ", " + customerId + ", " + location + ") failed--No more items");
+        	System.out.println("Room in " + location + " couldn't be reserved because they are all reserved");
+        	Trace.warn("RM::reserveRoom( " + id + ", " + customerId + ", " + location + ") failed--No more items");
             return null;
         }
         else {        	
-            String key = Car.getKey(location);
-
+            String key = Hotel.getKey(location);
+            
             // decrease the number of available items in the storage
             curObj.setCount(curObj.getCount() - 1);
             curObj.setReserved(curObj.getReserved() + 1);
 
-            putCar(id, key, curObj);
-
-            Trace.info("RM::reserveCar( " + id + ", " + customerId + ", " + key + ") succeeded");  
+            putHotel(id, key, curObj);
+                        
+            Trace.info("RM::reserveRoom( " + id + ", " + customerId + ", " + key + ") succeeded");
             return new ReservedItem(key, curObj.getLocation(), 1, curObj.getPrice());
         }
     }
-
-    public boolean cancelItem(int id, String carKey, int count)
-        throws RemoteException, DeadlockException {
+    
+    public boolean cancelItem(int id, String hotelKey, int count)
+    	throws RemoteException, DeadlockException {
     	
-    	Car curObj = fetchCar(id, carKey);
+    	System.out.println("cancelItem( " + id + ", " + hotelKey + ", " + count + " )");
+    	    	
+    	Hotel curObj = fetchHotel(id, hotelKey);
     	if (curObj == null) {
-            System.out.println("Car " + carKey + " can't be cancelled because none exists");
-            return false;
-        }
+    		System.out.println("Room " + hotelKey + " can't be cancelled because none exists");
+    		return false;
+    	}
     	
     	String location = curObj.getLocation();
     	
@@ -216,37 +218,35 @@ public class CarManagerImpl implements ItemManager {
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, location);
         }  
-
-        System.out.println("cancelItem( " + id + ", " + carKey + ", " + count + " )");
-        
-        //adjust available quantity
-        curObj.setCount(curObj.getCount() + count);
-        curObj.setReserved(curObj.getReserved() - count);
-
-        return true;
+    	
+    	//adjust available quantity
+    	curObj.setCount(curObj.getCount() + count);
+    	curObj.setReserved(curObj.getReserved() - count);
+    	
+    	return true;
     }
-
-    private Car fetchCar(int id, String itemId) {
-        synchronized (carTable) {
-            return (Car)carTable.get(itemId);
+    
+    private Hotel fetchHotel(int id, String itemId) {
+        synchronized (roomsTable) {
+            return (Hotel)roomsTable.get(itemId);
         }
     }
-
-    private void putCar(int id, String itemId, Car car) {
-        synchronized (carTable) {
-            carTable.put(itemId, car);            
+    
+    private void putHotel(int id, String itemId, Hotel hotel) {
+        synchronized (roomsTable) {
+            roomsTable.put(itemId, hotel);            
         }
     }
-
-    private void deleteCar(int id, String itemId) {
-        synchronized (carTable) {
-            carTable.remove(itemId);
+    
+    private void deleteHotel(int id, String itemId) {
+        synchronized (roomsTable) {
+            roomsTable.remove(itemId);
         }
     }
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-				
+		
 		return lm.UnlockAll(id);
 	}
 

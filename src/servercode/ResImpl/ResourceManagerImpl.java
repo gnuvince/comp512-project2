@@ -26,32 +26,38 @@ public class ResourceManagerImpl implements ResourceManager {
     protected ItemManager rmFlight = null;
 
     public static void main(String args[]) {
-        // Figure out where server is running
-        int port = 5005;
-        String hotelServer = "localhost";
+        
+    	int rmiPort = 5005;        
         String carServer = "localhost";
         String flightServer = "localhost";
+        String hotelServer = "localhost";
+        int carPort = 5006;
+        int flightPort = 5007;
+        int hotelPort = 5008;
 
-        if (args.length == 4) {
-            hotelServer = args[0];
+        if (args.length == 7) {
+            rmiPort = Integer.parseInt(args[0]);
             carServer = args[1];
-            flightServer = args[2];
-            port = Integer.parseInt(args[3]);
+            carPort = Integer.parseInt(args[2]);
+            flightServer = args[3];
+            flightPort = Integer.parseInt(args[4]);
+            hotelServer = args[5];
+            hotelPort = Integer.parseInt(args[6]);            
         }
         else {
             System.err.println("Wrong usage");
-            System.out.println("Usage: java ResImpl.ResourceManagerImpl [hotel server] [car server] [flight server] [server port");
+            System.out.println("Usage: java ResImpl.ResourceManagerImpl [RMI port] [car server] [car port] [flight server] [flight port] [hotel server] [hotel port]");
             System.exit(1);
         }
 
         try {
             // create a new Server object
-            ResourceManagerImpl obj = new ResourceManagerImpl(hotelServer, carServer, flightServer);
+            ResourceManagerImpl obj = new ResourceManagerImpl(carServer, carPort, flightServer, flightPort, hotelServer, hotelPort);
             // dynamically generate the stub (client proxy)
             ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry(port);
+            Registry registry = LocateRegistry.getRegistry(rmiPort);
             registry.rebind("Group5_ResourceManager", rm);
 
             System.err.println("Server ready");
@@ -67,21 +73,15 @@ public class ResourceManagerImpl implements ResourceManager {
         }
     }
 
-    public ResourceManagerImpl(String hotelServer, String carServer,
-        String flightServer) throws RemoteException {
-        int hotelPort = 5005;
-        int carPort = 5006;
-        int flightPort = 5007;
-/*
+    public ResourceManagerImpl(String carServer, int carPort, String flightServer, int flightPort, String hotelServer, int hotelPort) throws RemoteException {
+
         try {
             // get a reference to the rmiregistry on Hotel's server
-            Registry registry = LocateRegistry.getRegistry(hotelServer,
-                hotelPort);
+            Registry registry = LocateRegistry.getRegistry(hotelServer, hotelPort);
             // get the proxy and the remote reference by rmiregistry lookup
             rmHotel = (ItemManager) registry.lookup("Group5_HotelManager");
             if (rmHotel != null) {
-                System.out
-                    .println("Successfully connected to the Hotel Manager");
+                System.out.println("Successfully connected to the Hotel Manager");
             }
             else {
                 System.out.println("Connection to the Hotel Manager failed");
@@ -91,7 +91,7 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Hotel exception: " + e.toString());
             e.printStackTrace();
         }
-*/
+
         try {
             Registry registry = LocateRegistry.getRegistry(carServer, carPort);
             rmCar = (ItemManager) registry.lookup("Group5_CarManager");
@@ -106,14 +106,13 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Car exception: " + e.toString());
             e.printStackTrace();
         }
-/*
+
         try {
             Registry registry = LocateRegistry.getRegistry(flightServer,
                 flightPort);
             rmFlight = (ItemManager) registry.lookup("Group5_FlightManager");
             if (rmFlight != null) {
-                System.out
-                    .println("Successfully connected to the Flight Manager");
+                System.out.println("Successfully connected to the Flight Manager");
             }
             else {
                 System.out.println("Connection to the Flight Manager failed");
@@ -123,7 +122,6 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Flight exception: " + e.toString());
             e.printStackTrace();
         }
- */
     }
 
     // Reads a data item
@@ -297,7 +295,6 @@ public class ResourceManagerImpl implements ResourceManager {
     		rmHotel.addItem(id, location, count, price);
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-
         	return false;        	
         }
         return true;
@@ -311,7 +308,6 @@ public class ResourceManagerImpl implements ResourceManager {
     		rmHotel.deleteItem(id, location);
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-
         	return false;        	
         }
         
@@ -330,7 +326,6 @@ public class ResourceManagerImpl implements ResourceManager {
     		rmCar.addItem(id, location, count, price);
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-
         	return false;        	
         }
         
@@ -344,7 +339,6 @@ public class ResourceManagerImpl implements ResourceManager {
     		rmCar.deleteItem(id, location);
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-
         	return false;        	
         }
     	
