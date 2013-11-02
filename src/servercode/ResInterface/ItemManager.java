@@ -108,4 +108,6 @@ public interface ItemManager extends Remote {
      * @throws RemoteException
      */
     public boolean commit(int id) throws RemoteException;
+    
+    public void abort(int id) throws RemoteException;
 }

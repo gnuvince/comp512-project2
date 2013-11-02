@@ -12,7 +12,7 @@ FLIGHTPORT=5007
 HOTELHOST=localhost
 HOTELPORT=5008
 
-all: compile jarfile
+all: compile jarfile 
 
 compile: lockcode servercode clientcode carcode flightcode hotelcode policy
 
@@ -22,26 +22,28 @@ lockcode:
 
 servercode:
 	mkdir -p $(BINDIR)
-	javac -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/RMItem.java
-	javac -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/ReservedItem.java
-	javac -d $(BINDIR) -cp $(BINDIR) src/servercode/ResInterface/*.java
-	javac -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/*.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/TransactionAbortedException.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/InvalidTransactionException.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/RMItem.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/ReservedItem.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResInterface/*.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/*.java
 
 clientcode:
-	mkdir -p $(BINDIR)
-	javac -d $(BINDIR) -cp $(BINDIR) src/clientcode/*.java
+	mkdir -p $(BINDIR)	
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/clientcode/*.java
 
 carcode:
 	mkdir -p $(BINDIR)
-	javac -d $(BINDIR) -cp $(BINDIR) src/carcode/ResImpl/*.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/carcode/ResImpl/*.java
 	
 flightcode:
 	mkdir -p $(BINDIR)
-	javac -d $(BINDIR) -cp $(BINDIR) src/flightcode/ResImpl/*.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/flightcode/ResImpl/*.java
 
 hotelcode:
 	mkdir -p $(BINDIR)
-	javac -d $(BINDIR) -cp $(BINDIR) src/hotelcode/ResImpl/*.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/hotelcode/ResImpl/*.java
 
 runcar: compile
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(CARPORT) &
@@ -49,17 +51,26 @@ runcar: compile
 
 runflight:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(FLIGHTPORT) &
-	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
+	# DEBUG MODE
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8002,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
+	# NON-Debug
+	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
 
 runhotel:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(HOTELPORT) &
 	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT)
 	
 runserver:
-	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(SERVERPORT) &	
-	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
+	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(SERVERPORT) &
+	# Debug mode	
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
+	# Non-Debug
+	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT)
 	
 runclient:	
+	# Debug mode
+	#java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8001,suspend=n -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
+	# Non-Debug 
 	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
 	
 

@@ -13,7 +13,9 @@ public class client
 {
     static String message = "blank";
     static ResourceManager rm = null;
+        
 
+    
     public static void main(String args[])
     {
         client obj = new client();
@@ -30,6 +32,9 @@ public class client
         int numRooms;
         int numCars;
         String location;
+        
+        //For transactions
+        Vector<Integer> txnIds = new Vector<Integer>();
 
         String server = "localhost";
         int port = 5005;
@@ -120,7 +125,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -146,7 +151,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -172,7 +177,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -190,7 +195,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -212,7 +217,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -235,7 +240,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -257,7 +262,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -279,7 +284,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -294,32 +299,40 @@ public class client
                     Id = obj.getInt(arguments.elementAt(1));
                     flightNum = obj.getInt(arguments.elementAt(2));
                     int seats=rm.queryFlight(Id,flightNum);
-                    System.out.println("Number of seats available:"+seats);
+                    if (seats < 0) {
+                    	System.out.println("This resource is used by someone else, please try again later");
+                    } else {
+                    	System.out.println("Number of seats available:"+seats);
+                    }
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
-            case 11: //querying a Car Location
+            case 11: //querying a Car at Location
                 if(arguments.size()!=3){
                     obj.wrongNumber();
                     break;
                 }
-                System.out.println("Querying a car location using id: "+arguments.elementAt(1));
-                System.out.println("Car location: "+arguments.elementAt(2));
+                System.out.println("Querying a car location using id: " + arguments.elementAt(1));
+                System.out.println("Car location: " + arguments.elementAt(2));
                 try{
                     Id = obj.getInt(arguments.elementAt(1));
                     location = obj.getString(arguments.elementAt(2));
-                    numCars=rm.queryCars(Id,location);
-                    System.out.println("number of Cars at this location:"+numCars);
+                    numCars = rm.queryCars(Id,location);
+                    if (numCars < 0) {
+                    	System.out.println("This resource is used by someone else, please try again later");
+                    } else {
+                    	System.out.println("number of Cars at this location:" + numCars);
+                    }
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -334,12 +347,16 @@ public class client
                     Id = obj.getInt(arguments.elementAt(1));
                     location = obj.getString(arguments.elementAt(2));
                     numRooms=rm.queryRooms(Id,location);
-                    System.out.println("number of Rooms at this location:"+numRooms);
+                    if (numRooms < 0) {
+                    	System.out.println("This resource is used by someone else, please try again later");
+                    } else {
+                    	System.out.println("number of Rooms at this location:" + numRooms);
+                    }
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -359,7 +376,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -374,12 +391,16 @@ public class client
                     Id = obj.getInt(arguments.elementAt(1));
                     flightNum = obj.getInt(arguments.elementAt(2));
                     price=rm.queryFlightPrice(Id,flightNum);
-                    System.out.println("Price of a seat:"+price);
+                    if (price < 0) {
+                    	System.out.println("This resource is used by someone else, please try again later");
+                    } else {
+                    	System.out.println("Price of a seat: "+price);
+                    }
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -394,12 +415,16 @@ public class client
                     Id = obj.getInt(arguments.elementAt(1));
                     location = obj.getString(arguments.elementAt(2));
                     price=rm.queryCarsPrice(Id,location);
-                    System.out.println("Price of a car at this location:"+price);
+                    if (price < 0) {
+                    	System.out.println("This resource is used by someone else, please try again later");
+                    } else {
+                    	System.out.println("Price of a car at this location:"+price);
+                    }
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -414,12 +439,16 @@ public class client
                     Id = obj.getInt(arguments.elementAt(1));
                     location = obj.getString(arguments.elementAt(2));
                     price=rm.queryRoomsPrice(Id,location);
-                    System.out.println("Price of Rooms at this location:"+price);
+                    if (price < 0) {
+                    	System.out.println("This resource is used by someone else, please try again later");
+                    } else {
+                    	System.out.println("Price of Rooms at this location:"+price);
+                    }
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -443,7 +472,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -469,7 +498,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -494,7 +523,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -528,7 +557,7 @@ public class client
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
 
@@ -554,14 +583,87 @@ public class client
                     boolean customer=rm.newCustomer(Id,Cid);
                     System.out.println("new customer id:"+Cid);
                 }
-                catch(Exception e){
-                	System.out.println("CAUGHT EXCEPTION ----- ");
-                	
+                catch(Exception e){                	
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    e.printStackTrace();
+                    //e.printStackTrace();
                 }
                 break;
+            case 23: // start a transaction
+            	if (arguments.size() != 1) {
+            		obj.wrongNumber();
+            		break;
+            	}
+            	System.out.println("Starting a new transaction");
+            	try{       
+            		int txnId = rm.start();
+                    txnIds.add(txnId);
+                    System.out.println("new transaction id: " + txnId);
+                }
+                catch(Exception e){                	
+                    System.out.println("EXCEPTION:");
+                    System.out.println(e.getMessage());
+                    //e.printStackTrace();
+                }
+            	break;
+            case 24: // Commit a transaction
+            	if (arguments.size() != 2) {
+            		obj.wrongNumber();
+            		break;
+            	}
+            	try{     
+            		Id = obj.getInt(arguments.elementAt(1));
+            		System.out.println("Committing transaction id: " + Id);
+            		rm.commit(Id);   //always succeeds for now
+            		txnIds.removeElement(Id);                    
+                    System.out.println("Committed transaction id: " + Id);
+                }
+                catch(Exception e){                	
+                    System.out.println("EXCEPTION:");
+                    System.out.println(e.getMessage());
+                    //e.printStackTrace();
+                }
+            	break;
+            case 25: // Abort a transaction
+            	if (arguments.size() != 2) {
+            		obj.wrongNumber();
+            		break;
+            	}
+            	System.out.println("Committing a transaction");
+            	try{     
+            		Id = obj.getInt(arguments.elementAt(1));
+            		rm.abort(Id); 
+                    txnIds.removeElement(Id);
+                    System.out.println("Aborted transaction id: " + Id);
+                }
+                catch(Exception e){                	
+                    System.out.println("EXCEPTION:");
+                    System.out.println(e.getMessage());
+                    //e.printStackTrace();
+                }
+            	break;
+            case 26: // Shutdown the system
+            	if (arguments.size() != 1) {
+            		obj.wrongNumber();
+            		break;
+            	}
+            	System.out.println("Shutting system down...");
+            	try{    
+            		if (rm.shutdown()) {
+            			
+            			//TODO: shut Middleware down
+            			
+            			//Shut myself?????
+            		} else {        		
+            			System.out.println("Couldn't shut system down, there are transactions still alive");
+            		}
+                }
+                catch(Exception e){                	
+                    System.out.println("EXCEPTION:");
+                    System.out.println(e.getMessage());
+                    //e.printStackTrace();
+                }
+            	break;
 
             default:
                 System.out.println("The interface does not support this command.");
@@ -583,6 +685,7 @@ public class client
         }
         return arguments;
     }
+    
     public int findChoice(String argument)
     {
         if (argument.compareToIgnoreCase("help")==0)
@@ -629,6 +732,14 @@ public class client
             return 21;
         else if (argument.compareToIgnoreCase("newcustomerid")==0)
             return 22;
+        else if (argument.compareToIgnoreCase("start")==0)
+            return 23;
+        else if (argument.compareToIgnoreCase("commit")==0)
+            return 24;
+        else if (argument.compareToIgnoreCase("abort")==0)
+            return 25;
+        else if (argument.compareToIgnoreCase("shutdown")==0)
+            return 26;
         else
             return 666;
 

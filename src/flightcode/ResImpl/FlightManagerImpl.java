@@ -173,7 +173,6 @@ public class FlightManagerImpl implements ItemManager {
         }
         return 0;   
     }
-
    
     @Override
     public ReservedItem reserveItem(int id, String customerId, String flightNum)
@@ -262,6 +261,12 @@ public class FlightManagerImpl implements ItemManager {
 	public boolean commit(int id) throws RemoteException {
 		
 		return lm.UnlockAll(id);
+	}
+
+	@Override
+	public void abort(int id) throws RemoteException {
+		// TODO Auto-generated method stub
+		
 	}
 
 

@@ -250,5 +250,11 @@ public class CarManagerImpl implements ItemManager {
 		return lm.UnlockAll(id);
 	}
 
+	@Override
+	public void abort(int id) throws RemoteException {
+		
+		
+	}
+
 
 }

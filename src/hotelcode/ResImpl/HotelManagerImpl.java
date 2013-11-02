@@ -250,5 +250,11 @@ public class HotelManagerImpl implements ItemManager {
 		return lm.UnlockAll(id);
 	}
 
+	@Override
+	public void abort(int id) throws RemoteException {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }
