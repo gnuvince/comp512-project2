@@ -47,7 +47,10 @@ hotelcode:
 
 runcar: compile
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(CARPORT) &
-	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT)
+	# Debug 
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8003,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT)
+	# NON-Debug
+	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT)
 
 runflight:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(FLIGHTPORT) &
@@ -58,6 +61,9 @@ runflight:
 
 runhotel:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(HOTELPORT) &
+	# Debug
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8004,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT)	
+	# NON-Debug
 	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT)
 	
 runserver:

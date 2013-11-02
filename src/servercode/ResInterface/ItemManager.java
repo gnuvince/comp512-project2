@@ -3,11 +3,10 @@ package servercode.ResInterface;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-//import LockManager.*;
-
-
+import flightcode.ResImpl.Flight;
 import LockManager.DeadlockException;
 import servercode.ResImpl.ReservedItem;
+import servercode.ResImpl.ReservableItem;
 
 public interface ItemManager extends Remote {
     /**
@@ -110,4 +109,7 @@ public interface ItemManager extends Remote {
     public boolean commit(int id) throws RemoteException;
     
     public void abort(int id) throws RemoteException;
+    
+    /* To abort transaction */
+    public void recoverItemState(int id, ReservableItem backup) throws RemoteException;
 }

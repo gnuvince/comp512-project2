@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import carcode.ResImpl.Car;
 import servercode.ResInterface.*;
 import servercode.ResImpl.*;
 import LockManager.*;
@@ -21,6 +22,7 @@ public class HotelManagerImpl implements ItemManager {
     protected RMHashtable roomsTable = new RMHashtable();
     
     private LockManager lm = new LockManager();
+    private UndoManager undoManager = new UndoManager(this);
     
     public static void main(String args[]) {
     	
@@ -75,6 +77,10 @@ public class HotelManagerImpl implements ItemManager {
             // If hotel doesn't exist, create it and add it to 
             // the manager's hash table.
             Hotel newObj = new Hotel(location, quantity, price);
+            
+            //UNDO: Create UndoAdd command that reverses the AddItem operation
+            undoManager.addUndoCommand(id, new UndoAdd(id, newObj));
+            
             putHotel(id, newObj.getKey(), newObj);
             Trace.info("RM::addHotel(" + id + ") created new location "
                     + location + ", count=" + quantity + ", price=$" + price);
@@ -83,6 +89,12 @@ public class HotelManagerImpl implements ItemManager {
             // If the hotel already exists, update its quantity (by adding
             // the new quantity) and update its price (only if the new price
             // is positive).
+        	
+        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
+        	ReservableItem undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());
+        	undoObj.setReserved(curObj.getReserved());
+            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
+            
             curObj.setCount(curObj.getCount() + quantity);
             if (price > 0) {
                 curObj.setPrice(price);
@@ -115,6 +127,11 @@ public class HotelManagerImpl implements ItemManager {
         }
         else {
             if (curObj.getReserved() == 0) {
+            	
+            	//UNDO: create UndoDelete command that reverses the delete operation            	
+            	Hotel undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());            	
+                undoManager.addUndoCommand(id, new UndoDelete(id, undoObj));
+            	
                 deleteHotel(id, curObj.getKey());
                 Trace.info("RM::deleteItem(" + id + ", " + itemId
                         + ") item deleted");
@@ -186,7 +203,12 @@ public class HotelManagerImpl implements ItemManager {
         	Trace.warn("RM::reserveRoom( " + id + ", " + customerId + ", " + location + ") failed--No more items");
             return null;
         }
-        else {        	
+        else {      
+        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
+        	ReservableItem undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());
+        	undoObj.setReserved(curObj.getReserved());
+            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));   
+            
             String key = Hotel.getKey(location);
             
             // decrease the number of available items in the storage
@@ -219,6 +241,11 @@ public class HotelManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
+    	//UNDO: Backup current state of the object and wrap it in an UndoCommand
+    	ReservableItem undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());
+    	undoObj.setReserved(curObj.getReserved());
+        undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
+    	
     	//adjust available quantity
     	curObj.setCount(curObj.getCount() + count);
     	curObj.setReserved(curObj.getReserved() - count);
@@ -246,14 +273,23 @@ public class HotelManagerImpl implements ItemManager {
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-		
+		undoManager.clearUndoHistory(id);
 		return lm.UnlockAll(id);
 	}
 
 	@Override
 	public void abort(int id) throws RemoteException {
-		// TODO Auto-generated method stub
-		
+		undoManager.performAllUndoCommands(id);
+		lm.UnlockAll(id);
+	}
+
+	@Override
+	public void recoverItemState(int id, ReservableItem backup) {
+		Hotel curObj = fetchHotel(id, backup.getKey());
+    	
+    	curObj.setCount(backup.getCount());
+    	curObj.setPrice(backup.getPrice());
+    	curObj.setReserved(backup.getReserved());		
 	}
 
 

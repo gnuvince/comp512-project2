@@ -192,16 +192,18 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new InvalidTransactionException(id);
         }
     	
+    	boolean result;
+    	
     	try {
-    		rmFlight.deleteItem(id, Integer.toString(flightNum));
+    		result = rmFlight.deleteItem(id, Integer.toString(flightNum));
     		txnManager.enlist(id, "flight");
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
 
-        	return false;        	
+        	result = false;        	
         }
     	
-        return true;
+        return result;
     }
 
     // Create a new room location or add rooms to an existing location
@@ -234,15 +236,17 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new InvalidTransactionException(id);
         }
         
+        boolean result;
+        
     	try {
-    		rmHotel.deleteItem(id, location);
+    		result = rmHotel.deleteItem(id, location);
     		txnManager.enlist(id, "room");
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-        	return false;        	
+        	result = false;        	
         }
         
-        return true;
+        return result;
     }
 
     // Create a new car location or add cars to an existing location
@@ -275,15 +279,17 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new InvalidTransactionException(id);
         }
     	
+    	boolean result;
+    	
     	try {
-    		rmCar.deleteItem(id, location);
+    		result = rmCar.deleteItem(id, location);
     		txnManager.enlist(id, "car");
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-        	return false;        	
+        	result = false;        	
         }
     	
-        return true;
+        return result;
     }
 
     // Returns the number of empty seats on this flight
@@ -543,12 +549,10 @@ public class ResourceManagerImpl implements ResourceManager {
         	txnManager.enlist(id, "car");
         } catch (DeadlockException exc) {
         	Trace.error(exc.getMessage());
-        	//Abort TXN
         }         
         
         if (reservedItem != null) {
-            cust.reserve(reservedItem.getKey(), reservedItem.getLocation(),
-                reservedItem.getPrice());
+            cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
 
             return true;
         }
@@ -575,7 +579,6 @@ public class ResourceManagerImpl implements ResourceManager {
         	txnManager.enlist(id, "hotel");
         } catch (DeadlockException exc) {
         	Trace.error(exc.getMessage());
-        	//Abort TXN
         }  
 
         if (reservedItem != null) {
@@ -635,50 +638,31 @@ public class ResourceManagerImpl implements ResourceManager {
 
         System.out.println("BOOKING ITINERARY");
         
-        boolean result = false;
-        Vector<String> rms;
-        
-        //for (Object flightNum: flightNumbers){
         for (int i = 0; i < flightNumbers.size(); i++) {
             int flightNumber = Integer.parseInt((String)flightNumbers.get(i));
-        	        	
+        	
+            boolean flightResult;
+            
         	try {
-        		result = reserveFlight(id, customer, flightNumber);
+        		flightResult = reserveFlight(id, customer, flightNumber);
         	} catch (DeadlockException e) {
         		Trace.error(e.getMessage());
         		this.abort(id);
         		throw new TransactionAbortedException(id);
         	}
+        	
+        	if (!flightResult){
+        		this.abort(id);
+        		throw new TransactionAbortedException(id);
+        	}
+        	
         }
         
-        
-        
-        /*ArrayList<String> reservedItems = new ArrayList<String>();
-
-        boolean result = false;
-
-        for (int i = 0; i < flightNumbers.size(); i++) {
-            int flightNumber = (Integer) flightNumbers.get(i);
-
-            result = reserveFlight(id, customer, flightNumber);
-
-            // If one flight reservation fails, we cancel the previous flights
-            // reserved
-            if (!result) {
-                System.out.println(flightNumber + " reservation failed");
-                cancelItemBatch(cust, reservedItems);
-                return false;
-            }
-
-            reservedItems.add("flight-" + flightNumber);
-            System.out.println(flightNumber + " reservation success");
-        }*/
-
         if (Car) {       	
         	ReservedItem reservedCar = null;
         	
         	try {
-        		reservedCar = rmCar.reserveItem(id, cust.getKey(), location);
+        		reservedCar = rmCar.reserveItem(id, cust.getKey(), location);        		
         	} catch (DeadlockException e) {
         		Trace.error(e.getMessage());
         		this.abort(id);
@@ -689,7 +673,8 @@ public class ResourceManagerImpl implements ResourceManager {
             	this.abort(id);
         		throw new TransactionAbortedException(id);
             }
-
+            
+            txnManager.enlist(id, "car");
             cust.reserve(reservedCar.getKey(), reservedCar.getLocation(), reservedCar.getPrice());
         }
 
@@ -709,6 +694,7 @@ public class ResourceManagerImpl implements ResourceManager {
         		throw new TransactionAbortedException(id);
             }
 
+            txnManager.enlist(id, "hotel");
             cust.reserve(reservedRoom.getKey(), reservedRoom.getLocation(), reservedRoom.getPrice());
         }
 
@@ -755,6 +741,7 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new InvalidTransactionException(id);
         }
 		
+		System.out.println("Aborting transaction: " + id);
 		Vector<String> rms = txnManager.abort(id);
 		 
 		for(String rm: rms) {

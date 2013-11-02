@@ -629,7 +629,7 @@ public class client
             		obj.wrongNumber();
             		break;
             	}
-            	System.out.println("Committing a transaction");
+            	System.out.println("Aborting a transaction");
             	try{     
             		Id = obj.getInt(arguments.elementAt(1));
             		rm.abort(Id); 

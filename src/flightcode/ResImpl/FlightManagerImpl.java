@@ -10,8 +10,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Vector;
 
 import servercode.ResInterface.*;
 import servercode.ResImpl.*;
@@ -22,6 +21,7 @@ public class FlightManagerImpl implements ItemManager {
     protected RMHashtable flightTable = new RMHashtable();
     
     private LockManager lm = new LockManager();
+    private UndoManager undoManager = new UndoManager(this);    
     
     public static void main(String args[]) {
     	
@@ -78,6 +78,10 @@ public class FlightManagerImpl implements ItemManager {
             // If Flight doesn't exist, create it and add it to 
             // the manager's hash table.
             Flight newObj = new Flight(nflightNum, flightSeats, flightPrice);
+            
+            //UNDO: Create UndoAdd command that reverses the AddItem operation
+            undoManager.addUndoCommand(id, new UndoAdd(id, newObj));
+            
             putFlight(id, newObj.getKey(), newObj);
             Trace.info("RM::addFlight(" + id + ") created new flight "
                     + flightNum + ", seats=" + flightSeats + ", price=$" + flightPrice);
@@ -86,6 +90,12 @@ public class FlightManagerImpl implements ItemManager {
             // If the Flight already exists, update its quantity (by adding
             // the new quantity) and update its price (only if the new price
             // is positive).
+        	
+        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
+        	ReservableItem undoObj = new Flight(nflightNum, curObj.getCount(), curObj.getPrice());
+        	undoObj.setReserved(curObj.getReserved());
+            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
+                    	
             curObj.setCount(curObj.getCount() + flightSeats);
             if (flightPrice > 0) {
                 curObj.setPrice(flightPrice);
@@ -121,17 +131,17 @@ public class FlightManagerImpl implements ItemManager {
         }
         else {
             if (curObj.getReserved() == 0) {
+            	
+            	//UNDO: create UndoDelete command that reverses the delete operation            	
+            	Flight undoObj = new Flight(nflightNum, curObj.getCount(), curObj.getPrice());            	
+                undoManager.addUndoCommand(id, new UndoDelete(id, undoObj));
+            	
                 deleteFlight(id, curObj.getKey());
-                Trace.info("RM::deleteItem(" + id + ", " + itemId
-                        + ") item deleted");
+                Trace.info("RM::deleteItem(" + id + ", " + itemId + ") item deleted");
                 return true;
             }
             else {
-            	Trace.info("RM::deleteItem("
-                        + id
-                        + ", "
-                        + itemId
-                        + ") item can't be deleted because some customers reserved it");
+            	Trace.info("RM::deleteItem("+ id+ ", "+ itemId + ") item can't be deleted because some customers reserved it");
                 return false;
             }
         } 
@@ -196,7 +206,12 @@ public class FlightManagerImpl implements ItemManager {
         	Trace.warn("RM::reserveItem( " + id + ", " + customerId + ", " + flightNum + ") failed--No more items");        	
             return null;
         }
-        else {        	
+        else {       
+        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
+        	ReservableItem undoObj = new Flight(nflightNum, curObj.getCount(), curObj.getPrice());
+        	undoObj.setReserved(curObj.getReserved());
+            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
+        	
             String key = Flight.getKey(nflightNum);
             
             // decrease the number of available items in the storage
@@ -229,6 +244,11 @@ public class FlightManagerImpl implements ItemManager {
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, flightNum);
         }  
+    	        
+        //UNDO: Backup current state of the object and wrap it in an UndoCommand
+    	ReservableItem undoObj = new Flight(Integer.parseInt(flightNum), curObj.getCount(), curObj.getPrice());
+    	undoObj.setReserved(curObj.getReserved());
+        undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
     	
     	//adjust available quantity
     	curObj.setCount(curObj.getCount() + count);
@@ -238,7 +258,7 @@ public class FlightManagerImpl implements ItemManager {
     	
     	return true;
     }
-    
+            
     private Flight fetchFlight(int id, String itemId) {
         synchronized (flightTable) {
             return (Flight)flightTable.get(itemId);
@@ -259,15 +279,22 @@ public class FlightManagerImpl implements ItemManager {
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-		
+		undoManager.clearUndoHistory(id);
 		return lm.UnlockAll(id);
 	}
 
 	@Override
-	public void abort(int id) throws RemoteException {
-		// TODO Auto-generated method stub
-		
+	public void abort(int id) throws RemoteException {		
+		undoManager.performAllUndoCommands(id);
+		lm.UnlockAll(id);
 	}
-
-
+	
+	public void recoverItemState(int id, ReservableItem flightBackup){
+    	Flight curObj = fetchFlight(id, flightBackup.getKey());
+    	
+    	curObj.setCount(flightBackup.getCount());
+    	curObj.setPrice(flightBackup.getPrice());
+    	curObj.setReserved(flightBackup.getReserved());
+    }
+	
 }
