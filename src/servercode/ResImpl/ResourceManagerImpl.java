@@ -162,6 +162,8 @@ public class ResourceManagerImpl implements ResourceManager {
     public boolean addFlight(int id, int flightNum, int flightSeats,
         int flightPrice) throws RemoteException, InvalidTransactionException {
     	
+    	//Sleep to test concurrency. Je voulais voir qu'est-ce qui se passe lorsque le middleware sleeps pis que 
+    	//j'envoie un autre request à partir d'un autre client. Réponse: Ça ne bloque pas
     	/*try {
     		Thread.sleep(10000);
     	} catch (Exception e) {
@@ -172,8 +174,7 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new InvalidTransactionException(id);
         }
     	
-        Trace.info("RM::addFlight(" + id + ", " + flightNum + ", $"
-            + flightPrice + ", " + flightSeats + ") called");
+        Trace.info("RM::addFlight(" + id + ", " + flightNum + ", $"+ flightPrice + ", " + flightSeats + ") called");
 
         try {
         	rmFlight.addItem(id, Integer.toString(flightNum), flightSeats, flightPrice);
@@ -199,7 +200,6 @@ public class ResourceManagerImpl implements ResourceManager {
     		txnManager.enlist(id, "flight");
         } catch (DeadlockException e) {
         	Trace.error(e.getMessage());
-
         	result = false;        	
         }
     	
@@ -211,8 +211,7 @@ public class ResourceManagerImpl implements ResourceManager {
     // its current price
     public boolean addRooms(int id, String location, int count, int price)
         throws RemoteException, InvalidTransactionException {
-        Trace.info("RM::addRooms(" + id + ", " + location + ", " + count
-            + ", $" + price + ") called");
+        Trace.info("RM::addRooms(" + id + ", " + location + ", " + count + ", $" + price + ") called");
        
         if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -254,8 +253,7 @@ public class ResourceManagerImpl implements ResourceManager {
     // current price
     public boolean addCars(int id, String location, int count, int price)
         throws RemoteException, InvalidTransactionException {
-        Trace.info("RM::addCars(" + id + ", " + location + ", " + count + ", $"
-            + price + ") called");
+        Trace.info("RM::addCars(" + id + ", " + location + ", " + count + ", $" + price + ") called");
 
         if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -610,8 +608,7 @@ public class ResourceManagerImpl implements ResourceManager {
         	reservedItem = rmFlight.reserveItem(id, cust.getKey(), strflightNum);        	
         	txnManager.enlist(id, "flight");
         } catch (DeadlockException exc) {
-        	Trace.error(exc.getMessage());
-        	
+        	Trace.error(exc.getMessage());        	
         	throw exc;
         }  
         
@@ -624,8 +621,10 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     /* reserve an itinerary */
-    public boolean itinerary(int id, int customer, Vector flightNumbers, String location, boolean Car, boolean Room) 
+    public boolean itinerary(int id, int customer, Vector flightNumbers, String location, boolean car, boolean room) 
     		throws RemoteException, InvalidTransactionException, TransactionAbortedException {
+    	
+    	//Unlike for the other operations, the transaction is aborted as soon as a component of the itinerary fails. 
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -641,8 +640,9 @@ public class ResourceManagerImpl implements ResourceManager {
         for (int i = 0; i < flightNumbers.size(); i++) {
             int flightNumber = Integer.parseInt((String)flightNumbers.get(i));
         	
-            boolean flightResult;
-            
+            //the boolean is required when reserveFlight fails for reasons other than deadlocks
+            //i.e. no more flights available
+            boolean flightResult;            
         	try {
         		flightResult = reserveFlight(id, customer, flightNumber);
         	} catch (DeadlockException e) {
@@ -651,14 +651,15 @@ public class ResourceManagerImpl implements ResourceManager {
         		throw new TransactionAbortedException(id);
         	}
         	
-        	if (!flightResult){
+        	if (!flightResult){        		
         		this.abort(id);
         		throw new TransactionAbortedException(id);
-        	}
+        	}      
         	
+        	//note: reserved flight is added to customer in reserveFlight()
         }
         
-        if (Car) {       	
+        if (car) {       	
         	ReservedItem reservedCar = null;
         	
         	try {
@@ -678,7 +679,7 @@ public class ResourceManagerImpl implements ResourceManager {
             cust.reserve(reservedCar.getKey(), reservedCar.getLocation(), reservedCar.getPrice());
         }
 
-        if (Room) {
+        if (room) {
             // Try to reserve a room at destination
         	ReservedItem reservedRoom = null;
         	try {
@@ -699,12 +700,6 @@ public class ResourceManagerImpl implements ResourceManager {
         }
 
         return true;
-    }
-    
-    private void cancelItemBatch(Customer cust, ArrayList<String> reservedItems) {
-        for (String key : reservedItems) {
-            cust.cancelReservation(key);
-        }
     }
 
 	@Override

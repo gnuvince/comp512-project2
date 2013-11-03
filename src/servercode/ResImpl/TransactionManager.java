@@ -4,10 +4,10 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 public class TransactionManager {
 
 	//Same as hashMap but thread safe
+	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
 	private ConcurrentHashMap<Integer, Vector<String>> hashMap = new ConcurrentHashMap<Integer, Vector<String>>();	
 	private int numberOfTransactions = 0;	
 	private static TransactionManager instance = null;
@@ -15,8 +15,7 @@ public class TransactionManager {
 	////Singleton class so private constructor
 	private TransactionManager(){ }
 	
-	public static TransactionManager getInstance() {
-		
+	public static TransactionManager getInstance() {		
 		if(instance == null) {
 			instance = new TransactionManager();
 	    }
@@ -38,6 +37,7 @@ public class TransactionManager {
 		return id;
 	}
 	 
+	//Adds a RM as used by transaction
 	public void enlist(int id, String rm) {
 		Vector<String> v = hashMap.get(id);
 		
@@ -66,10 +66,7 @@ public class TransactionManager {
 	}
 	
 	public boolean isValidTransaction(int id) {
-		if (hashMap.get(id) != null)
-			return true;
-		
-		return false;
+		return hashMap.get(id) != null ? true: false;		
 	}
 	
 	public boolean canShutdown(){

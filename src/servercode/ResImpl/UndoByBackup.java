@@ -2,6 +2,7 @@ package servercode.ResImpl;
 
 import servercode.ResInterface.ItemManager;
 
+//Undo an operation using value backup taken before the item is modified
 public class UndoByBackup extends UndoCommand {		
 		
 	public UndoByBackup(int id, ReservableItem item){

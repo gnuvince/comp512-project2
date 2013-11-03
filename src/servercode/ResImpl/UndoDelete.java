@@ -2,6 +2,7 @@ package servercode.ResImpl;
 
 import servercode.ResInterface.ItemManager;
 
+//Encapsulate the command to undo a deleteItem operation
 public class UndoDelete extends UndoCommand {		
 		
 	public UndoDelete(int id, ReservableItem item){
