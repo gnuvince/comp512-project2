@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import flightcode.ResImpl.Flight;
 import servercode.ResInterface.*;
 import servercode.ResImpl.*;
 import LockManager.*;

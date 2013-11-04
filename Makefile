@@ -26,6 +26,7 @@ servercode:
 	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/InvalidTransactionException.java
 	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/RMItem.java
 	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/ReservedItem.java
+	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/ReservableItem.java
 	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResInterface/*.java
 	javac -g -d $(BINDIR) -cp $(BINDIR) src/servercode/ResImpl/*.java
 

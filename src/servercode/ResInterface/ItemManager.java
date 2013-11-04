@@ -3,7 +3,7 @@ package servercode.ResInterface;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
-import flightcode.ResImpl.Flight;
+//import flightcode.ResImpl.Flight;
 import LockManager.DeadlockException;
 import servercode.ResImpl.ReservedItem;
 import servercode.ResImpl.ReservableItem;
