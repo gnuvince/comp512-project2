@@ -79,7 +79,7 @@ public class CarManagerImpl implements ItemManager {
             Car newObj = new Car(location, quantity, price);
             
             //UNDO: Create UndoAdd command that reverses the AddItem operation
-            undoManager.addUndoCommand(id, new UndoAdd(id, newObj));            
+            undoManager.addUndoCommand(id, new DeleteCommand(id, newObj));            
             
             putCar(id, newObj.getKey(), newObj);
             Trace.info("RM::addCars(" + id + ") created new location "
@@ -130,7 +130,7 @@ public class CarManagerImpl implements ItemManager {
             	
             	//UNDO: create UndoDelete command that reverses the delete operation            	
             	Car undoObj = new Car(location, curObj.getCount(), curObj.getPrice());            	
-                undoManager.addUndoCommand(id, new UndoDelete(id, undoObj));
+                undoManager.addUndoCommand(id, new AddCommand(id, undoObj));
             	
                 deleteCar(id, curObj.getKey());
                 Trace.info("RM::deleteItem(" + id + ", " + itemId+ ") item deleted");

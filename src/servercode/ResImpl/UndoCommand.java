@@ -16,5 +16,9 @@ public abstract class UndoCommand {
 	
 	public String getKey() {
 		return item.getLocation();
-	}	
+	}
+	
+	public ReservableItem getItem(){
+		return item;
+	}
 }

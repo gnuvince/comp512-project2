@@ -79,7 +79,7 @@ public class HotelManagerImpl implements ItemManager {
             Hotel newObj = new Hotel(location, quantity, price);
             
             //UNDO: Create UndoAdd command that reverses the AddItem operation
-            undoManager.addUndoCommand(id, new UndoAdd(id, newObj));
+            undoManager.addUndoCommand(id, new DeleteCommand(id, newObj));
             
             putHotel(id, newObj.getKey(), newObj);
             Trace.info("RM::addHotel(" + id + ") created new location "
@@ -130,7 +130,7 @@ public class HotelManagerImpl implements ItemManager {
             	
             	//UNDO: create UndoDelete command that reverses the delete operation            	
             	Hotel undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());            	
-                undoManager.addUndoCommand(id, new UndoDelete(id, undoObj));
+                undoManager.addUndoCommand(id, new AddCommand(id, undoObj));
             	
                 deleteHotel(id, curObj.getKey());
                 Trace.info("RM::deleteItem(" + id + ", " + itemId

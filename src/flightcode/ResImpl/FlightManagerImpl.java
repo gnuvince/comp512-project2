@@ -80,7 +80,7 @@ public class FlightManagerImpl implements ItemManager {
             Flight newObj = new Flight(nflightNum, flightSeats, flightPrice);
             
             //UNDO: Create UndoAdd command that reverses the AddItem operation
-            undoManager.addUndoCommand(id, new UndoAdd(id, newObj));
+            undoManager.addUndoCommand(id, new DeleteCommand(id, newObj));
             
             putFlight(id, newObj.getKey(), newObj);
             Trace.info("RM::addFlight(" + id + ") created new flight "
@@ -134,7 +134,7 @@ public class FlightManagerImpl implements ItemManager {
             	
             	//UNDO: create UndoDelete command that reverses the delete operation            	
             	Flight undoObj = new Flight(nflightNum, curObj.getCount(), curObj.getPrice());            	
-                undoManager.addUndoCommand(id, new UndoDelete(id, undoObj));
+                undoManager.addUndoCommand(id, new AddCommand(id, undoObj));
             	
                 deleteFlight(id, curObj.getKey());
                 Trace.info("RM::deleteItem(" + id + ", " + itemId + ") item deleted");

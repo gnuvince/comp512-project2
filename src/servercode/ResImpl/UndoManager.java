@@ -25,15 +25,28 @@ public class UndoManager {
 	    if (undoVector == null) {
 	    	undoVector = new Vector<UndoCommand>();
 	    }
-	                
-	    //Verify that we don't already have an undo command for this item 
+	            
+	    for (int i = 0; i < undoVector.size(); ++i) {
+	    	ReservableItem item = undoVector.get(i).getItem();
+	    	if (undoVector.get(i).getKey().equals(newUndo.getKey())) {
+	    		if (undoVector.get(i) instanceof UndoByBackup && newUndo instanceof AddCommand) {
+	    			undoVector.set(i, new AddCommand(id, item));
+	    		}
+	    		else if (undoVector.get(i) instanceof AddCommand && newUndo instanceof DeleteCommand) {
+	    			undoVector.set(i, new UndoByBackup(id, item));
+	    		}
+	    		return;
+	    	}
+	    }
+	    
+	    /*//Verify that we don't already have an undo command for this item 
 	    for (UndoCommand undo: undoVector) {
 	    	if (undo.getKey().equals(newUndo.getKey())){
 	    		return ; //Just ignore the new undoCommand because we got one for this transaction already
 	    		//If many operations happen on the same resource, we want to keep only the first one.	    		
 	    	}
-	    }	    
-	    	
+	    }*/
+	    
 	    undoVector.add(newUndo);
 	    undoMap.put(id, undoVector);
 	}
