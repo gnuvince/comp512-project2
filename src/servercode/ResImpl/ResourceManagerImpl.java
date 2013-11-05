@@ -21,6 +21,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
     protected RMHashtable m_itemHT = new RMHashtable();
     protected TransactionManager txnManager = TransactionManager.getInstance();
+    protected LockManager lm = new LockManager();
 
     protected ItemManager rmHotel  = null;
     protected ItemManager rmCar    = null;
@@ -401,10 +402,16 @@ public class ResourceManagerImpl implements ResourceManager {
     // customer doesn't exist. Returns empty RMHashtable if customer exists but
     // has no
     // reservations.
-    public RMHashtable getCustomerReservations(int id, int customerID)
+    /*public RMHashtable getCustomerReservations(int id, int customerID)
         throws RemoteException {
-        Trace.info("RM::getCustomerReservations(" + id + ", " + customerID
-            + ") called");
+        Trace.info("RM::getCustomerReservations(" + id + ", " + customerID + ") called");
+        
+        try {
+        	lm.Lock(id, String.valueOf(customerID), LockType.READ);
+        } catch (DeadlockException e) {
+        	
+        }
+        
         Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             Trace.warn("RM::getCustomerReservations failed(" + id + ", "
@@ -414,13 +421,24 @@ public class ResourceManagerImpl implements ResourceManager {
         else {
             return cust.getReservations();
         } // if
-    }
+    }*/
 
     // return a bill
     public String queryCustomerInfo(int id, int customerID)
-        throws RemoteException {
-        Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
-            + ") called");
+        throws RemoteException, DeadlockException, InvalidTransactionException {
+        Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID + ") called");
+        
+        if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+        
+        try {
+        	lm.Lock(id, String.valueOf(customerID), LockType.READ);        	
+        } catch (DeadlockException e) {
+        	throw new DeadlockException(id, String.valueOf(customerID));
+        }
+        
+        txnManager.enlist(id, "customer");
         Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
@@ -439,12 +457,24 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // customer functions
     // new customer just returns a unique customer identifier
-    public int newCustomer(int id) throws RemoteException {
+    public int newCustomer(int id) throws RemoteException, DeadlockException, InvalidTransactionException {
         Trace.info("INFO: RM::newCustomer(" + id + ") called");
         // Generate a globally unique ID for the new customer
         int cid = Integer.parseInt(String.valueOf(id)
             + String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND))
             + String.valueOf(Math.round(Math.random() * 100 + 1)));
+        
+        if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+        
+        try {
+        	lm.Lock(id, String.valueOf(cid), LockType.WRITE);
+        } catch (DeadlockException e) {
+        	throw new DeadlockException(id, String.valueOf(cid));
+        }
+        
+        txnManager.enlist(id, "customer");
         Customer cust = new Customer(cid);
         writeData(id, cust.getKey(), cust);
         Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
@@ -452,9 +482,20 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // I opted to pass in customerID instead. This makes testing easier
-    public boolean newCustomer(int id, int customerID) throws RemoteException {
-        Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
-            + ") called");
+    public boolean newCustomer(int id, int customerID) throws RemoteException, DeadlockException, InvalidTransactionException {
+        Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID + ") called");
+        
+        if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+        
+        try {
+        	lm.Lock(id, String.valueOf(customerID), LockType.WRITE);
+        } catch (DeadlockException e) {
+        	throw new DeadlockException(id, String.valueOf(customerID));
+        }
+        
+        txnManager.enlist(id, "customer");
         Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             cust = new Customer(customerID);
@@ -472,8 +513,20 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // Deletes customer from the database.
     public boolean deleteCustomer(int id, int customerID)
-        throws RemoteException {
+        throws RemoteException, DeadlockException, InvalidTransactionException {
         Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") called");
+        
+        if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+        
+        try {
+        	lm.Lock(id, String.valueOf(customerID), LockType.WRITE);
+        } catch (DeadlockException e) {
+        	throw new DeadlockException(id, String.valueOf(customerID));
+        }
+        
+        txnManager.enlist(id, "customer");
         Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             Trace.warn("RM::deleteCustomer(" + id + ", " + customerID
@@ -530,21 +583,28 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // Adds car reservation to this customer.
     public boolean reserveCar(int id, int customerID, String location)
-        throws RemoteException, InvalidTransactionException {
+        throws RemoteException, InvalidTransactionException, DeadlockException {
 
+    	if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+    	
+    	try {
+    		lm.Lock(id, String.valueOf(customerID), LockType.WRITE);
+        	txnManager.enlist(id, "customer");
+    	} catch (DeadlockException exc) {
+        	throw exc;
+        }    
+    	
         Customer cust = getCustomer(customerID);
         if (cust == null) {
             return false;
-        }
+        }      
         
-        if (!txnManager.isValidTransaction(id)) {
-        	throw new InvalidTransactionException(id);
-        }
-
         ReservedItem reservedItem = null;
-        try {
+        try {        	
         	reservedItem = rmCar.reserveItem(id, cust.getKey(), location);
-        	txnManager.enlist(id, "car");
+        	txnManager.enlist(id, "car");        	
         } catch (DeadlockException exc) {
         	Trace.error(exc.getMessage());
         }         
@@ -560,15 +620,22 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // Adds room reservation to this customer.
     public boolean reserveRoom(int id, int customerID, String location)
-        throws RemoteException, InvalidTransactionException {
+        throws RemoteException, InvalidTransactionException, DeadlockException {
 
+    	if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+    	
+    	try {
+    		lm.Lock(id, String.valueOf(customerID), LockType.WRITE);
+        	txnManager.enlist(id, "customer");
+    	} catch (DeadlockException exc) {
+        	throw exc;
+        }  
+    	
         Customer cust = getCustomer(customerID);
         if (cust == null) {
             return false;
-        }
-        
-        if (!txnManager.isValidTransaction(id)) {
-        	throw new InvalidTransactionException(id);
         }
         
         ReservedItem reservedItem = null;
@@ -592,13 +659,20 @@ public class ResourceManagerImpl implements ResourceManager {
     public boolean reserveFlight(int id, int customerID, int flightNum)
         throws RemoteException, InvalidTransactionException, DeadlockException {
 
+    	if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+    	
+    	try {
+    		lm.Lock(id, String.valueOf(customerID), LockType.WRITE);
+        	txnManager.enlist(id, "customer");
+    	} catch (DeadlockException exc) {
+        	throw exc;
+        }  
+    	
         Customer cust = getCustomer(customerID);
         if (cust == null) {
             return false;
-        }
-                
-        if (!txnManager.isValidTransaction(id)) {
-        	throw new InvalidTransactionException(id);
         }
 
         String strflightNum = Integer.toString(flightNum);
@@ -622,13 +696,20 @@ public class ResourceManagerImpl implements ResourceManager {
 
     /* reserve an itinerary */
     public boolean itinerary(int id, int customer, Vector flightNumbers, String location, boolean car, boolean room) 
-    		throws RemoteException, InvalidTransactionException, TransactionAbortedException {
+    		throws RemoteException, InvalidTransactionException, TransactionAbortedException, DeadlockException {
     	
     	//Unlike for the other operations, the transaction is aborted as soon as a component of the itinerary fails. 
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
         }
+    	
+    	try {
+    		lm.Lock(id, String.valueOf(customer), LockType.WRITE);
+        	txnManager.enlist(id, "customer");
+    	} catch (DeadlockException exc) {
+        	throw exc;
+        }  
 
         Customer cust = getCustomer(customer);
         if (cust == null) {
@@ -723,7 +804,10 @@ public class ResourceManagerImpl implements ResourceManager {
 			else if (rm.equals("flight"))
 				rmFlight.commit(id);
 			else if (rm.equals("hotel"))
-				rmHotel.commit(id);			
+				rmHotel.commit(id);	
+			else if (rm.equals("customer")){			
+				lm.UnlockAll(id);
+			}
 		}
 		
 		return true; //Commits always succeed since there is no failures yet
@@ -745,7 +829,11 @@ public class ResourceManagerImpl implements ResourceManager {
 			else if (rm.equals("flight"))
 				rmFlight.abort(id);
 			else if (rm.equals("hotel"))
-				rmHotel.abort(id);			
+				rmHotel.abort(id);	
+			else if (rm.equals("customer")){
+				//undoManager.performAllUndoCommands(id);
+				lm.UnlockAll(id);
+			}
 		}
 	}
 

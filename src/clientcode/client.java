@@ -7,6 +7,8 @@ import java.rmi.registry.Registry;
 import java.util.*;
 import java.io.*;
 
+import LockManager.DeadlockException;
+
 import servercode.ResInterface.*;
 
 public class client
@@ -369,8 +371,8 @@ public class client
                 System.out.println("Customer id: "+arguments.elementAt(2));
                 try{
                     Id = obj.getInt(arguments.elementAt(1));
-                    int customer = obj.getInt(arguments.elementAt(2));
-                    String bill=rm.queryCustomerInfo(Id,customer);
+                    int customer = obj.getInt(arguments.elementAt(2));                    
+                    String bill=rm.queryCustomerInfo(Id,customer);                    
                     System.out.println("Customer info:"+bill);
                 }
                 catch(Exception e){
