@@ -15,8 +15,6 @@ public class client
 {
     static String message = "blank";
     static ResourceManager rm = null;
-        
-
     
     public static void main(String args[])
     {
