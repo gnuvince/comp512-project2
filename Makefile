@@ -81,6 +81,10 @@ runclient:
 	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
 	
 
+populate:
+	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.AutomatedClient $(SERVERHOST) $(SERVERPORT) pop
+
+
 jarfile: compile
 	jar cvf ResInterface.jar -C $(BINDIR) servercode/ResInterface/ItemManager.class -C $(BINDIR) servercode/ResInterface/ResourceManager.class
 
