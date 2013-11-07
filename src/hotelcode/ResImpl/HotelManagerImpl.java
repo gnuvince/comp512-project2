@@ -20,9 +20,9 @@ import LockManager.*;
 public class HotelManagerImpl implements ItemManager {
     
     protected RMHashtable roomsTable = new RMHashtable();
-    
+        
     private LockManager lm = new LockManager();
-    private UndoManager undoManager = new UndoManager(this);
+    private WorkingSetItem ws = new WorkingSetItem();
     
     public static void main(String args[]) {
     	
@@ -72,16 +72,27 @@ public class HotelManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         } 
     	
-        Hotel curObj = (Hotel) fetchHotel(id, Hotel.getKey(location));
+    	Hotel curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Hotel) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchHotel(id, Hotel.getKey(location));    
+    		
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    		}
+      	}    	
+        
         if (curObj == null) {
             // If hotel doesn't exist, create it and add it to 
             // the manager's hash table.
             Hotel newObj = new Hotel(location, quantity, price);
             
-            //UNDO: Create UndoAdd command that reverses the AddItem operation
-            undoManager.addUndoCommand(id, new DeleteCommand(id, newObj));
+            ws.addCommand(id, new CommandPut(id, newObj.getKey(), newObj, this));
+            ws.sendItem(newObj);
+            ws.setItemForTxn(id, location);            
             
-            putHotel(id, newObj.getKey(), newObj);
             Trace.info("RM::addHotel(" + id + ") created new location "
                     + location + ", count=" + quantity + ", price=$" + price);
         }
@@ -89,17 +100,16 @@ public class HotelManagerImpl implements ItemManager {
             // If the hotel already exists, update its quantity (by adding
             // the new quantity) and update its price (only if the new price
             // is positive).
-        	
-        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
-        	ReservableItem undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());
-        	undoObj.setReserved(curObj.getReserved());
-            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
-            
+        	            
             curObj.setCount(curObj.getCount() + quantity);
             if (price > 0) {
                 curObj.setPrice(price);
             }
-            putHotel(id, Hotel.getKey(location), curObj);
+            
+            ws.addCommand(id, new CommandPut(id, Hotel.getKey(location), curObj, this));
+            ws.sendItem(curObj);            
+            ws.setItemForTxn(id, location);
+
             Trace.info("RM::addHotel(" + id + ") modified existing location "
                     + location + ", count=" + curObj.getCount() + ", price=$"
                     + curObj.getPrice());
@@ -118,7 +128,16 @@ public class HotelManagerImpl implements ItemManager {
         }
     	
     	String itemId = Hotel.getKey(location);
-        Hotel curObj = fetchHotel(id, itemId);
+        Hotel curObj;
+        
+        if (ws.hasItem(location)){
+    		curObj = (Hotel) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchHotel(id, itemId);    		
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    		}
+    	}
                 
         if (curObj == null) {
         	Trace.warn("RM::deleteItem(" + id + ", " + itemId
@@ -126,23 +145,20 @@ public class HotelManagerImpl implements ItemManager {
             return false;
         }
         else {
-            if (curObj.getReserved() == 0) {
+            if (curObj.getReserved() == 0) {            	
             	
-            	//UNDO: create UndoDelete command that reverses the delete operation            	
-            	Hotel undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());            	
-                undoManager.addUndoCommand(id, new AddCommand(id, undoObj));
+            	ws.sendItem(curObj);
             	
-                deleteHotel(id, curObj.getKey());
-                Trace.info("RM::deleteItem(" + id + ", " + itemId
-                        + ") item deleted");
+            	ws.deleteItem(curObj.getLocation()); //the item stays in ws but its current state is set to null
+            	
+            	ws.addCommand(id, new CommandDelete(id, curObj.getKey(), this));
+            	ws.setItemForTxn(id, location);
+
+                Trace.info("RM::deleteItem(" + id + ", " + itemId+ ") item deleted");
                 return true;
             }
             else {
-            	Trace.info("RM::deleteItem("
-                        + id
-                        + ", "
-                        + itemId
-                        + ") item can't be deleted because some customers reserved it");
+            	Trace.info("RM::deleteItem("+ id + ", " + itemId + ") item can't be deleted because some customers reserved it");
                 return false;
             }
         } 
@@ -157,7 +173,20 @@ public class HotelManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-        Hotel curObj = fetchHotel(id, Hotel.getKey(location));
+    	Hotel curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Hotel) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchHotel(id, Hotel.getKey(location));	
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    		    		
+    			ws.sendItem(curObj);
+    			ws.setItemForTxn(id, location);
+    		}
+    	}
+    	
         if (curObj != null) {
             return curObj.getCount();
         }
@@ -174,7 +203,20 @@ public class HotelManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-        Hotel curObj = fetchHotel(id, Hotel.getKey(location));
+    	Hotel curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Hotel) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchHotel(id, Hotel.getKey(location));	
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+
+    			ws.sendItem(curObj);
+    			ws.setItemForTxn(id, location);
+    		}
+    	}
+    	
         if (curObj != null) {
             return curObj.getPrice();
         }
@@ -192,7 +234,18 @@ public class HotelManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	    	
-        Hotel curObj = fetchHotel(id, Hotel.getKey(location));
+    	Hotel curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Hotel) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchHotel(id, Hotel.getKey(location));
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    			ws.sendItem(curObj);
+        		ws.setItemForTxn(id,  location);
+    		}
+    	}
         
         if (curObj == null) {        	
         	Trace.warn("RM::reserveRoom( " + id + ", " + customerId + ", " + location + ") failed--item doesn't exist"); 
@@ -203,19 +256,14 @@ public class HotelManagerImpl implements ItemManager {
         	Trace.warn("RM::reserveRoom( " + id + ", " + customerId + ", " + location + ") failed--No more items");
             return null;
         }
-        else {      
-        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
-        	ReservableItem undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());
-        	undoObj.setReserved(curObj.getReserved());
-            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));   
-            
+        else {                  
             String key = Hotel.getKey(location);
             
             // decrease the number of available items in the storage
             curObj.setCount(curObj.getCount() - 1);
             curObj.setReserved(curObj.getReserved() + 1);
 
-            putHotel(id, key, curObj);
+            ws.addCommand(id, new CommandPut(id, key, (ReservableItem)curObj, this));
                         
             Trace.info("RM::reserveRoom( " + id + ", " + customerId + ", " + key + ") succeeded");
             return new ReservedItem(key, curObj.getLocation(), 1, curObj.getPrice());
@@ -226,29 +274,39 @@ public class HotelManagerImpl implements ItemManager {
     	throws RemoteException, DeadlockException {
     	
     	System.out.println("cancelItem( " + id + ", " + hotelKey + ", " + count + " )");
-    	    	
-    	Hotel curObj = fetchHotel(id, hotelKey);
-    	if (curObj == null) {
-    		System.out.println("Room " + hotelKey + " can't be cancelled because none exists");
-    		return false;
-    	}
     	
-    	String location = curObj.getLocation();
+    	String segments[] = hotelKey.split("-");    	
+    	String location = segments[1];
     	
     	try {
     		lm.Lock(id, location, LockType.WRITE);    		
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, location);
         }  
+    	    	    	
+    	Hotel curObj;
     	
-    	//UNDO: Backup current state of the object and wrap it in an UndoCommand
-    	ReservableItem undoObj = new Hotel(location, curObj.getCount(), curObj.getPrice());
-    	undoObj.setReserved(curObj.getReserved());
-        undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
+    	if (ws.hasItem(location)){
+    		curObj = (Hotel) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchHotel(id, hotelKey);    		
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    			ws.sendItem(curObj);
+        		ws.setItemForTxn(id,  location);
+    		}
+    	}
     	
+    	if (curObj == null) {
+    		System.out.println("Room " + hotelKey + " can't be cancelled because none exists");
+    		return false;
+    	}
+    	    	
     	//adjust available quantity
     	curObj.setCount(curObj.getCount() + count);
     	curObj.setReserved(curObj.getReserved() - count);
+    	
+    	ws.addCommand(id, new CommandPut(id, hotelKey, (ReservableItem)curObj, this));
     	
     	return true;
     }
@@ -259,13 +317,13 @@ public class HotelManagerImpl implements ItemManager {
         }
     }
     
-    private void putHotel(int id, String itemId, Hotel hotel) {
+    public void putHotel(int id, String itemId, Hotel hotel) {
         synchronized (roomsTable) {
             roomsTable.put(itemId, hotel);            
         }
     }
     
-    private void deleteHotel(int id, String itemId) {
+    public void deleteHotel(int id, String itemId) {
         synchronized (roomsTable) {
             roomsTable.remove(itemId);
         }
@@ -273,13 +331,13 @@ public class HotelManagerImpl implements ItemManager {
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-		undoManager.clearUndoHistory(id);
+		ws.commit(id);		
 		return lm.UnlockAll(id);
 	}
 
 	@Override
 	public void abort(int id) throws RemoteException {
-		undoManager.performAllUndoCommands(id);
+		ws.abort(id);
 		lm.UnlockAll(id);
 	}
 

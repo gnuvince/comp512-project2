@@ -21,7 +21,8 @@ public class CarManagerImpl implements ItemManager {
     protected RMHashtable carTable = new RMHashtable();
     
     private LockManager lm = new LockManager();
-    private UndoManager undoManager = new UndoManager(this);
+    
+    private WorkingSetItem ws = new WorkingSetItem();
 
     public static void main(String args[]) {
     	
@@ -72,16 +73,29 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-        Car curObj = (Car) fetchCar(id, Car.getKey(location));
+    	Car curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Car) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchCar(id, Car.getKey(location));    
+    		
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    		}
+      	}
+    	
+        
         if (curObj == null) {
             // If Car doesn't exist, create it and add it to 
             // the manager's hash table.
             Car newObj = new Car(location, quantity, price);
+                        
+            ws.addCommand(id, new CommandPut(id,newObj.getKey(), newObj, this));
+            //putCar(id, newObj.getKey(), newObj);
+            ws.sendItem(newObj);
+            ws.setItemForTxn(id, location);
             
-            //UNDO: Create UndoAdd command that reverses the AddItem operation
-            undoManager.addUndoCommand(id, new DeleteCommand(id, newObj));            
-            
-            putCar(id, newObj.getKey(), newObj);
             Trace.info("RM::addCars(" + id + ") created new location "
                 + location + ", count=" + quantity + ", price=$" + price);
         }
@@ -89,17 +103,17 @@ public class CarManagerImpl implements ItemManager {
             // If the Car already exists, update its quantity (by adding
             // the new quantity) and update its price (only if the new price
             // is positive).
-        	
-        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
-        	ReservableItem undoObj = new Car(location, curObj.getCount(), curObj.getPrice());
-        	undoObj.setReserved(curObj.getReserved());
-            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
                       
             curObj.setCount(curObj.getCount() + quantity);
             if (price > 0) {
                 curObj.setPrice(price);
             }
-            putCar(id, Car.getKey(location), curObj);
+            
+            ws.addCommand(id, new CommandPut(id, Car.getKey(location), curObj, this));
+            ws.sendItem(curObj);            
+            //putCar(id, Car.getKey(location), curObj);
+            ws.setItemForTxn(id, location);
+            
             Trace.info("RM::addCars(" + id + ") modified existing location "
                 + location + ", count=" + curObj.getCount() + ", price=$"
                 + curObj.getPrice());
@@ -117,8 +131,17 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }
     	
-        String itemId = Car.getKey(location);
-        Car curObj = fetchCar(id, itemId);
+    	String itemId = Car.getKey(location);
+    	Car curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Car) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchCar(id, itemId);    		
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    		}
+    	}
 
         if (curObj == null) {
             Trace.warn("RM::deleteItem(" + id + ", " + itemId
@@ -126,13 +149,15 @@ public class CarManagerImpl implements ItemManager {
             return false;
         }
         else {
-            if (curObj.getReserved() == 0) {
+            if (curObj.getReserved() == 0) {            	
+            	ws.sendItem(curObj);
             	
-            	//UNDO: create UndoDelete command that reverses the delete operation            	
-            	Car undoObj = new Car(location, curObj.getCount(), curObj.getPrice());            	
-                undoManager.addUndoCommand(id, new AddCommand(id, undoObj));
+            	ws.deleteItem(curObj.getLocation()); //the item stays in ws but its current state is set to null
             	
-                deleteCar(id, curObj.getKey());
+            	ws.addCommand(id, new CommandDelete(id, curObj.getKey(), this));
+                //deleteCar(id, curObj.getKey());
+            	ws.setItemForTxn(id, location);
+            	
                 Trace.info("RM::deleteItem(" + id + ", " + itemId+ ") item deleted");
                 return true;
             }
@@ -150,9 +175,22 @@ public class CarManagerImpl implements ItemManager {
     		lm.Lock(id, location, LockType.READ);    		
     	} catch (DeadlockException deadlock) {
             throw new DeadlockException(id, location);
-        }    	
+        }    
     	
-        Car curObj = fetchCar(id, Car.getKey(location));
+    	Car curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Car) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchCar(id, Car.getKey(location));	
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    		    		
+    			ws.sendItem(curObj);
+    			ws.setItemForTxn(id, location);
+    		}
+    	}
+    	
         if (curObj != null) {
             return curObj.getCount();
         }
@@ -169,7 +207,20 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-        Car curObj = fetchCar(id, Car.getKey(location));
+    	Car curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Car) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchCar(id, Car.getKey(location));	
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+
+    			ws.sendItem(curObj);
+    			ws.setItemForTxn(id, location);
+    		}
+    	}
+    	        
         if (curObj != null) {
             return curObj.getPrice();
         }
@@ -187,8 +238,20 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-        Car curObj = fetchCar(id, Car.getKey(location));
-
+    	Car curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Car) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchCar(id, Car.getKey(location));
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    			ws.sendItem(curObj);
+        		ws.setItemForTxn(id,  location);
+    		}
+    	}
+    	
+    	
         if (curObj == null) {        	
             Trace.warn("RM::reserveCar( " + id + ", " + customerId + ", " + location + ") failed--item doesn't exist"); 
             return null;
@@ -198,18 +261,13 @@ public class CarManagerImpl implements ItemManager {
             return null;
         }
         else {            	
-        	//UNDO: Backup current state of the object and wrap it in an UndoCommand
-        	ReservableItem undoObj = new Car(location, curObj.getCount(), curObj.getPrice());
-        	undoObj.setReserved(curObj.getReserved());
-            undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));        	
-        	
             String key = Car.getKey(location);
 
             // decrease the number of available items in the storage
             curObj.setCount(curObj.getCount() - 1);
             curObj.setReserved(curObj.getReserved() + 1);
 
-            putCar(id, key, curObj);
+            ws.addCommand(id, new CommandPut(id, key, (ReservableItem)curObj, this));
 
             Trace.info("RM::reserveCar( " + id + ", " + customerId + ", " + key + ") succeeded");  
             return new ReservedItem(key, curObj.getLocation(), 1, curObj.getPrice());
@@ -218,14 +276,9 @@ public class CarManagerImpl implements ItemManager {
 
     public boolean cancelItem(int id, String carKey, int count)
         throws RemoteException, DeadlockException {
-    	
-    	Car curObj = fetchCar(id, carKey);
-    	if (curObj == null) {
-            System.out.println("Car " + carKey + " can't be cancelled because none exists");
-            return false;
-        }
-    	
-    	String location = curObj.getLocation();
+    	    	   
+    	String segments[] = carKey.split("-");    	
+    	String location = segments[1];
     	
     	try {
     		lm.Lock(id, location, LockType.WRITE);    		
@@ -233,16 +286,31 @@ public class CarManagerImpl implements ItemManager {
             throw new DeadlockException(id, location);
         }  
     	
-    	//UNDO: Backup current state of the object and wrap it in an UndoCommand
-    	ReservableItem undoObj = new Car(location, curObj.getCount(), curObj.getPrice());
-    	undoObj.setReserved(curObj.getReserved());
-        undoManager.addUndoCommand(id, new UndoByBackup(id, undoObj));
-
+    	Car curObj;
+    	
+    	if (ws.hasItem(location)){
+    		curObj = (Car) ws.getItem(location);    		
+    	} else {
+    		curObj = fetchCar(id, carKey);    		
+    		if (curObj != null) {
+    			curObj = curObj.getCopy();
+    			ws.sendItem(curObj);
+        		ws.setItemForTxn(id,  location);
+    		}
+    	}
+    	    	
+    	if (curObj == null) {
+            System.out.println("Car " + carKey + " can't be cancelled because none exists");
+            return false;
+        }
+    	
         System.out.println("cancelItem( " + id + ", " + carKey + ", " + count + " )");
         
         //adjust available quantity
         curObj.setCount(curObj.getCount() + count);
         curObj.setReserved(curObj.getReserved() - count);
+        
+        ws.addCommand(id, new CommandPut(id, curObj.getLocation(), (ReservableItem)curObj, this));
 
         return true;
     }
@@ -252,14 +320,14 @@ public class CarManagerImpl implements ItemManager {
             return (Car)carTable.get(itemId);
         }
     }
-
-    private void putCar(int id, String itemId, Car car) {
+    
+    public void putCar(int id, String itemId, Car car) {
         synchronized (carTable) {
             carTable.put(itemId, car);            
         }
     }
 
-    private void deleteCar(int id, String itemId) {
+    public void deleteCar(int id, String itemId) {
         synchronized (carTable) {
             carTable.remove(itemId);
         }
@@ -267,23 +335,23 @@ public class CarManagerImpl implements ItemManager {
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-		undoManager.clearUndoHistory(id);
+		ws.commit(id);		
 		return lm.UnlockAll(id);
 	}
 
 	@Override
 	public void abort(int id) throws RemoteException {
-		undoManager.performAllUndoCommands(id);
+		ws.abort(id);
 		lm.UnlockAll(id);		
 	}
 
 	@Override
 	public void recoverItemState(int id, ReservableItem backup) {
-		Car curObj = fetchCar(id, backup.getKey());
+		/*Car curObj = fetchCar(id, backup.getKey());
     	
     	curObj.setCount(backup.getCount());
     	curObj.setPrice(backup.getPrice());
-    	curObj.setReserved(backup.getReserved());		
+    	curObj.setReserved(backup.getReserved());*/		
 	}
 
 

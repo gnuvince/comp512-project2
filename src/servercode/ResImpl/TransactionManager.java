@@ -30,7 +30,7 @@ public class TransactionManager {
 		
 		//Generate random numbers until we get one that is not already used
 		while (hashMap.contains(id) || id == 1) {
-			id = new Random().nextInt(100) + 1; //+1 because can return 0
+			id = new Random().nextInt(10000) + 1; //+1 because can return 0
 		}
 		hashMap.put(id, new Vector<String>());
 		

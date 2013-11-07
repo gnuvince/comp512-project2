@@ -6,6 +6,7 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,7 +18,7 @@ import servercode.ResInterface.ResourceManager;
 import LockManager.DeadlockException;
 
 public class AutomatedClient {
-    static int NUM_CLIENTS = 150;
+    static int NUM_CLIENTS = 10;
     static int NUMBER_OF_ITEMS = 1000;
 	static String message = "blank";
 	static ResourceManager rm = null;
@@ -119,16 +120,20 @@ class AutomatedRunner implements Callable<Void> {
             try {
                 long t1 = System.nanoTime();
                 int xid = rm.start();
-                RandomCommand rc = new RandomCommand(xid);
-                rc.execRandomCommand(rm);
+                int lim = new Random().nextInt(5);
+                for (int i = 0; i < lim; ++i) {
+                	RandomCommand rc = new RandomCommand(xid);
+                	rc.execRandomCommand(rm);
+                }
                 rm.commit(xid);
                 //rm.abort(xid);
                 long t2 = System.nanoTime();
                 Date d = new Date();
                 System.out.printf("%d,%02d:%02d:%02d,%.3f%n", clientId, d.getHours(), d.getMinutes(), d.getSeconds(), (t2-t1)/1000000.0);
-                Thread.sleep(100);
+                Thread.sleep(250);
             }
             catch (RemoteException | InvalidTransactionException | DeadlockException | TransactionAbortedException e) {
+            	e.printStackTrace();
             }
             catch (InterruptedException e) {
                 System.exit(0);
