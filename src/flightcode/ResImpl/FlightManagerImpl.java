@@ -94,8 +94,8 @@ public class FlightManagerImpl implements ItemManager {
             Flight newObj = new Flight(nflightNum, flightSeats, flightPrice);
             
             ws.addCommand(id, new CommandPut(id, newObj.getKey(), newObj, this));
-            ws.sendItem(newObj);
-            ws.setItemForTxn(id, flightNum);
+            ws.sendCurrentState(newObj);
+            ws.addLocationToTxn(id, flightNum);
             
             Trace.info("RM::addFlight(" + id + ") created new flight "
                     + flightNum + ", seats=" + flightSeats + ", price=$" + flightPrice);
@@ -111,8 +111,8 @@ public class FlightManagerImpl implements ItemManager {
             }
             
             ws.addCommand(id, new CommandPut(id, Flight.getKey(nflightNum), curObj, this));
-            ws.sendItem(curObj);            
-            ws.setItemForTxn(id, flightNum);
+            ws.sendCurrentState(curObj);            
+            ws.addLocationToTxn(id, flightNum);
             
             Trace.info("RM::addFlight(" + id + ") modified existing flight "
                     + flightNum + ", seats=" + curObj.getCount() + ", price=$"
@@ -153,12 +153,12 @@ public class FlightManagerImpl implements ItemManager {
         else {
             if (curObj.getReserved() == 0) {
             	        
-            	ws.sendItem(curObj);
+            	ws.sendCurrentState(curObj);
             	
             	ws.deleteItem(curObj.getLocation()); //the item stays in ws but its current state is set to null
             	
             	ws.addCommand(id, new CommandDelete(id, curObj.getKey(), this));
-            	ws.setItemForTxn(id, flightNum);
+            	ws.addLocationToTxn(id, flightNum);
             	
                 Trace.info("RM::deleteItem(" + id + ", " + itemId + ") item deleted");
                 return true;
@@ -189,8 +189,8 @@ public class FlightManagerImpl implements ItemManager {
     		if (curObj != null) {
     			curObj = curObj.getCopy();
     		    		
-    			ws.sendItem(curObj);
-    			ws.setItemForTxn(id, flightNum);
+    			ws.sendCurrentState(curObj);
+    			ws.addLocationToTxn(id, flightNum);
     		}
     	}
         if (curObj != null) {
@@ -220,8 +220,8 @@ public class FlightManagerImpl implements ItemManager {
     		if (curObj != null) {
     			curObj = curObj.getCopy();
 
-    			ws.sendItem(curObj);
-    			ws.setItemForTxn(id, flightNum);
+    			ws.sendCurrentState(curObj);
+    			ws.addLocationToTxn(id, flightNum);
     		}
     	}
     	
@@ -251,8 +251,8 @@ public class FlightManagerImpl implements ItemManager {
     		curObj = fetchFlight(id, Flight.getKey(nflightNum));
     		if (curObj != null) {
     			curObj = curObj.getCopy();
-    			ws.sendItem(curObj);
-        		ws.setItemForTxn(id,  flightNum);
+    			ws.sendCurrentState(curObj);
+        		ws.addLocationToTxn(id,  flightNum);
     		}
     	}
         
@@ -301,8 +301,8 @@ public class FlightManagerImpl implements ItemManager {
     		curObj = fetchFlight(id, flightKey);    		
     		if (curObj != null) {
     			curObj = curObj.getCopy();
-    			ws.sendItem(curObj);
-        		ws.setItemForTxn(id,  flightNum);
+    			ws.sendCurrentState(curObj);
+        		ws.addLocationToTxn(id,  flightNum);
     		}
     	}
     	

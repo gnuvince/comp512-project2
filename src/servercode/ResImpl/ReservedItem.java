@@ -53,6 +53,13 @@ public class ReservedItem extends RMItem {
         String s = getReservableItemKey();
         return s.toLowerCase();
     }
+    
+    public ReservedItem getCopy() {
+    	return new ReservedItem(this.getKey(), 
+    			this.getLocation(), 
+    			this.getCount(), 
+    			this.getPrice());
+    }
 
     private int    m_nCount;
     private int    m_nPrice;

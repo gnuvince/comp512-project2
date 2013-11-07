@@ -21,7 +21,7 @@ public class WorkingSetItem extends WorkingSet {
 		return currentStatesMap.get(location);
 	}
 	
-	public void sendItem(ReservableItem item){
+	public void sendCurrentState(ReservableItem item){
 		currentStatesMap.put(item.getLocation(), item);		
 	}
 	

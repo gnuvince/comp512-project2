@@ -14,6 +14,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import carcode.ResImpl.Car;
+
 import LockManager.*;
 
 //public class ResourceManagerImpl extends java.rmi.server.UnicastRemoteObject
@@ -22,6 +24,7 @@ public class ResourceManagerImpl implements ResourceManager {
     protected RMHashtable m_itemHT = new RMHashtable();
     protected TransactionManager txnManager = TransactionManager.getInstance();
     protected LockManager lm = new LockManager();
+    protected WorkingSetCustomer ws = new WorkingSetCustomer();
 
     protected ItemManager rmHotel  = null;
     protected ItemManager rmCar    = null;
@@ -437,6 +440,18 @@ public class ResourceManagerImpl implements ResourceManager {
         } catch (DeadlockException e) {
         	throw new DeadlockException(id, String.valueOf(customerID));
         }
+        
+        Customer cust;
+        
+        if (ws.hasItem(customerID)){
+    		cust = (Customer) ws.getItem(customerID);    		
+    	} else {
+    		cust = (Customer) readData(id, Customer.getKey(customerID));    		    
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    		}
+      	}
         
         txnManager.enlist(id, "customer");
         Customer cust = (Customer) readData(id, Customer.getKey(customerID));

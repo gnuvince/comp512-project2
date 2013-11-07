@@ -23,7 +23,7 @@ public class WorkingSet {
 		idToCommandsMap.put(id, commands);		
 	}
 	
-	public void setItemForTxn(int id, String item){
+	public void addLocationToTxn(int id, String item){
 		Vector<String> items = idToLocationsMap.get(id);
 		if (items == null){
 			items = new Vector<String>();
