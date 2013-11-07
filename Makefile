@@ -14,7 +14,8 @@ HOTELPORT=5008
 
 all: compile jarfile 
 
-compile: lockcode servercode clientcode carcode flightcode hotelcode policy
+compile: 
+	find src -name '*.java' -print0 | xargs -0 javac -d $(BINDIR) -cp $(BINDIR)
 
 lockcode:
 	mkdir -p $(BINDIR)
@@ -70,15 +71,22 @@ runhotel:
 runserver:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(SERVERPORT) &
 	# Debug mode	
-	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
+	#java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
 	# Non-Debug
-	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT)
+	java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT)
 	
 runclient:	
 	# Debug mode
 	#java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8001,suspend=n -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
 	# Non-Debug 
 	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
+	
+
+automatedclient:	
+	# Debug mode
+	#java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8001,suspend=n -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.client $(SERVERHOST) $(SERVERPORT)
+	# Non-Debug 
+	java -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(CURDIR) -cp $(BINDIR) clientcode.AutomatedClient $(SERVERHOST) $(SERVERPORT) 
 	
 
 populate:
