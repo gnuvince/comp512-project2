@@ -179,12 +179,6 @@ public class HotelManagerImpl implements ItemManager {
     		curObj = (Hotel) ws.getItem(location);    		
     	} else {
     		curObj = fetchHotel(id, Hotel.getKey(location));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-    		    		
-    			ws.sendCurrentState(curObj.getLocation(), curObj);
-    			ws.addLocationToTxn(id, location);
-    		}
     	}
     	
         if (curObj != null) {
@@ -209,12 +203,6 @@ public class HotelManagerImpl implements ItemManager {
     		curObj = (Hotel) ws.getItem(location);    		
     	} else {
     		curObj = fetchHotel(id, Hotel.getKey(location));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-
-    			ws.sendCurrentState(curObj.getLocation(), curObj);
-    			ws.addLocationToTxn(id, location);
-    		}
     	}
     	
         if (curObj != null) {

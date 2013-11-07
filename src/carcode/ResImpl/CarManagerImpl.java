@@ -183,12 +183,6 @@ public class CarManagerImpl implements ItemManager {
     		curObj = (Car) ws.getItem(location);    		
     	} else {
     		curObj = fetchCar(id, Car.getKey(location));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-    		    		
-    			ws.sendCurrentState(curObj.getLocation(), curObj);
-    			ws.addLocationToTxn(id, location);
-    		}
     	}
     	
         if (curObj != null) {
@@ -213,12 +207,6 @@ public class CarManagerImpl implements ItemManager {
     		curObj = (Car) ws.getItem(location);    		
     	} else {
     		curObj = fetchCar(id, Car.getKey(location));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-
-    			ws.sendCurrentState(curObj.getLocation(), curObj);
-    			ws.addLocationToTxn(id, location);
-    		}
     	}
     	        
         if (curObj != null) {
@@ -250,7 +238,6 @@ public class CarManagerImpl implements ItemManager {
         		ws.addLocationToTxn(id,  location);
     		}
     	}
-    	
     	
         if (curObj == null) {        	
             Trace.warn("RM::reserveCar( " + id + ", " + customerId + ", " + location + ") failed--item doesn't exist"); 

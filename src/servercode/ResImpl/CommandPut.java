@@ -37,7 +37,7 @@ public class CommandPut extends Command{
 		if (itemManager instanceof FlightManagerImpl){
 			((FlightManagerImpl) itemManager).putFlight(id, itemId, (Flight)newObj);
 		}
-			
+					
 	}
 	
 

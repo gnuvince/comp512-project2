@@ -186,12 +186,6 @@ public class FlightManagerImpl implements ItemManager {
     		curObj = (Flight) ws.getItem(flightNum);    		
     	} else {
     		curObj = fetchFlight(id, Flight.getKey(nflightNum));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-    		    		
-    			ws.sendCurrentState(curObj.getLocation(), curObj);
-    			ws.addLocationToTxn(id, flightNum);
-    		}
     	}
         if (curObj != null) {
             return curObj.getCount();
@@ -217,13 +211,7 @@ public class FlightManagerImpl implements ItemManager {
     		curObj = (Flight) ws.getItem(flightNum);    		
     	} else {
     		curObj = fetchFlight(id, Flight.getKey(nflightNum));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-
-    			ws.sendCurrentState(curObj.getLocation(), curObj);
-    			ws.addLocationToTxn(id, flightNum);
-    		}
-    	}
+       	}
     	
         if (curObj != null) {
             return curObj.getPrice();
