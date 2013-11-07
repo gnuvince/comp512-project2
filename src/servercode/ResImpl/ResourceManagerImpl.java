@@ -24,7 +24,7 @@ public class ResourceManagerImpl implements ResourceManager {
     protected RMHashtable m_itemHT = new RMHashtable();
     protected TransactionManager txnManager = TransactionManager.getInstance();
     protected LockManager lm = new LockManager();
-    protected WorkingSetCustomer ws = new WorkingSetCustomer();
+    protected WorkingSet<Customer> ws = new WorkingSet<Customer>();
 
     protected ItemManager rmHotel  = null;
     protected ItemManager rmCar    = null;

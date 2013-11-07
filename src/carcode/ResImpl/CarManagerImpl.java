@@ -22,7 +22,7 @@ public class CarManagerImpl implements ItemManager {
     
     private LockManager lm = new LockManager();
     
-    private WorkingSetItem ws = new WorkingSetItem();
+    private WorkingSet<Car> ws = new WorkingSet<Car>();
 
     public static void main(String args[]) {
     	
@@ -93,7 +93,7 @@ public class CarManagerImpl implements ItemManager {
                         
             ws.addCommand(id, new CommandPut(id,newObj.getKey(), newObj, this));
             //putCar(id, newObj.getKey(), newObj);
-            ws.sendCurrentState(newObj);
+            ws.sendCurrentState(newObj.getLocation(), newObj);
             ws.addLocationToTxn(id, location);
             
             Trace.info("RM::addCars(" + id + ") created new location "
@@ -110,7 +110,7 @@ public class CarManagerImpl implements ItemManager {
             }
             
             ws.addCommand(id, new CommandPut(id, Car.getKey(location), curObj, this));
-            ws.sendCurrentState(curObj);            
+            ws.sendCurrentState(curObj.getLocation(), curObj);            
             //putCar(id, Car.getKey(location), curObj);
             ws.addLocationToTxn(id, location);
             
@@ -150,7 +150,7 @@ public class CarManagerImpl implements ItemManager {
         }
         else {
             if (curObj.getReserved() == 0) {            	
-            	ws.sendCurrentState(curObj);
+            	ws.sendCurrentState(curObj.getLocation(), curObj);
             	
             	ws.deleteItem(curObj.getLocation()); //the item stays in ws but its current state is set to null
             	
@@ -186,7 +186,7 @@ public class CarManagerImpl implements ItemManager {
     		if (curObj != null) {
     			curObj = curObj.getCopy();
     		    		
-    			ws.sendCurrentState(curObj);
+    			ws.sendCurrentState(curObj.getLocation(), curObj);
     			ws.addLocationToTxn(id, location);
     		}
     	}
@@ -216,7 +216,7 @@ public class CarManagerImpl implements ItemManager {
     		if (curObj != null) {
     			curObj = curObj.getCopy();
 
-    			ws.sendCurrentState(curObj);
+    			ws.sendCurrentState(curObj.getLocation(), curObj);
     			ws.addLocationToTxn(id, location);
     		}
     	}
@@ -246,7 +246,7 @@ public class CarManagerImpl implements ItemManager {
     		curObj = fetchCar(id, Car.getKey(location));
     		if (curObj != null) {
     			curObj = curObj.getCopy();
-    			ws.sendCurrentState(curObj);
+    			ws.sendCurrentState(curObj.getLocation(), curObj);
         		ws.addLocationToTxn(id,  location);
     		}
     	}
@@ -294,7 +294,7 @@ public class CarManagerImpl implements ItemManager {
     		curObj = fetchCar(id, carKey);    		
     		if (curObj != null) {
     			curObj = curObj.getCopy();
-    			ws.sendCurrentState(curObj);
+    			ws.sendCurrentState(curObj.getLocation(), curObj);
         		ws.addLocationToTxn(id,  location);
     		}
     	}
