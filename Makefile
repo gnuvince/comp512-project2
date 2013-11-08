@@ -15,7 +15,7 @@ HOTELPORT=5008
 all: compile jarfile 
 
 compile: 
-	find src -name '*.java' -print0 | xargs -0 javac -d $(BINDIR) -cp $(BINDIR)
+	find src -name '*.java' -print0 | xargs -0 javac -g -d $(BINDIR) -cp $(BINDIR)
 
 lockcode:
 	mkdir -p $(BINDIR)
@@ -57,7 +57,7 @@ runcar: compile
 runflight:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(FLIGHTPORT) &
 	# DEBUG MODE
-	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8002,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8007,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)	
 	# NON-Debug
 	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
 

@@ -297,7 +297,7 @@ public class CarManagerImpl implements ItemManager {
         curObj.setCount(curObj.getCount() + count);
         curObj.setReserved(curObj.getReserved() - count);
         
-        ws.addCommand(id, new CommandPut(id, curObj.getLocation(), (ReservableItem)curObj, this));
+        ws.addCommand(id, new CommandPut(id, curObj.getKey(), (ReservableItem)curObj, this));
 
         return true;
     }

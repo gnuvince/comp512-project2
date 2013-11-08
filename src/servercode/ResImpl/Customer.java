@@ -95,6 +95,7 @@ public class Customer extends RMItem {
             htCopy.put(key, value.getCopy());
         }
     	
+    	copy.m_Reservations = htCopy;
     	return copy;
     }
 
