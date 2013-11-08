@@ -109,6 +109,13 @@ set and modified according to the different commands.  This allows
 query operations to see the changed state of the data even though the
 updates haven't been committed.
 
+\subsection{Transaction killer}
+
+In a separate thread, we run a transaction killer, a singleton object
+that inspects the time-to-live values of the active transactions.  If
+one has been idle for more than 15 seconds (arbitrarily chosen to be
+larger than the deadlock timeout), the thread will be aborted.
+
 \subsection{Diagrams}
 
 \begin{center}
