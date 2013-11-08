@@ -36,7 +36,7 @@ public class WorkingSet<StateType> {
 		idToLocationsMap.put(id, items);		
 	}
 	
-	public void commit(int id){
+	public synchronized void commit(int id){
 		Vector<Command> commands = idToCommandsMap.get(id);
 		
 		if (commands != null){
@@ -57,7 +57,7 @@ public class WorkingSet<StateType> {
 		idToLocationsMap.remove(id);
 	}
 	
-	public void abort(int id){
+	public synchronized void abort(int id){
 		Vector<String> locations = idToLocationsMap.get(id);
 
 		if (locations != null){
@@ -72,19 +72,19 @@ public class WorkingSet<StateType> {
 	
 	
 	
-	public boolean hasItem(String location){
+	public synchronized boolean hasItem(String location){
 		return currentStatesMap.containsKey(location);
 	}
 
-	public StateType getItem(String location){
+	public synchronized StateType getItem(String location){
 		return currentStatesMap.get(location);
 	}
 
-	public void sendCurrentState(String location, StateType item){
+	public synchronized void sendCurrentState(String location, StateType item){
 		currentStatesMap.put(location, item);		
 	}
 
-	public void deleteItem(String item){
+	public synchronized void deleteItem(String item){
 		currentStatesMap.put(item, null);
 	}
 }

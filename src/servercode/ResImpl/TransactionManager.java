@@ -57,6 +57,7 @@ public class TransactionManager {
 	public Vector<String> commit(int id) {
 		Vector<String> v = hashMap.get(id);
 		hashMap.remove(id);
+		timeToLiveMap.remove(id);
 		
 		numberOfTransactions--;
 		return v;		
@@ -66,6 +67,7 @@ public class TransactionManager {
 	public Vector<String> abort(int id) {
 		Vector<String> v = hashMap.get(id);		
 		hashMap.remove(id);
+		timeToLiveMap.remove(id);
 		
 		numberOfTransactions--;
 		return v;
