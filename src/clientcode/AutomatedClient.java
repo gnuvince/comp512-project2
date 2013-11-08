@@ -18,7 +18,8 @@ import servercode.ResInterface.ResourceManager;
 import LockManager.DeadlockException;
 
 public class AutomatedClient {
-    static int NUM_CLIENTS = 10;
+    static int NUM_CLIENTS = 1;
+    static int DELAY = 100;
     static int NUMBER_OF_ITEMS = 1000;
 	static String message = "blank";
 	static ResourceManager rm = null;
@@ -90,13 +91,13 @@ public class AutomatedClient {
 			return;
 		}
 
-		
+    	System.out.println("client,time,latency");
 		ExecutorService executor = Executors.newFixedThreadPool(NUM_CLIENTS);
 		try {
 		    AutomatedRunner[] runners = new AutomatedRunner[NUM_CLIENTS];
 		    for (int i = 0; i < NUM_CLIENTS; ++i)
 		        runners[i] = new AutomatedRunner(i, rm);
-            executor.invokeAll(Arrays.asList(runners), 10, TimeUnit.SECONDS);
+            executor.invokeAll(Arrays.asList(runners), 60, TimeUnit.SECONDS);
         }
         catch (InterruptedException e) {
             System.out.println("INTERRUPTION IN EXECUTOR!!!");
@@ -120,23 +121,19 @@ class AutomatedRunner implements Callable<Void> {
             try {
                 long t1 = System.nanoTime();
                 int xid = rm.start();
-                int lim = new Random().nextInt(5);
-                for (int i = 0; i < lim; ++i) {
+                for (int i = 0; i < 50; ++i) {
                 	RandomCommand rc = new RandomCommand(xid);
                 	rc.execRandomCommand(rm);
                 }
-                rm.commit(xid);
-                //rm.abort(xid);
+                //rm.commit(xid);
+                rm.abort(xid);
                 long t2 = System.nanoTime();
                 Date d = new Date();
                 System.out.printf("%d,%02d:%02d:%02d,%.3f%n", clientId, d.getHours(), d.getMinutes(), d.getSeconds(), (t2-t1)/1000000.0);
-                Thread.sleep(250);
+                //Thread.sleep(AutomatedClient.DELAY);
             }
             catch (RemoteException | InvalidTransactionException | DeadlockException | TransactionAbortedException e) {
             	e.printStackTrace();
-            }
-            catch (InterruptedException e) {
-                System.exit(0);
             }
         
         }

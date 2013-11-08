@@ -125,5 +125,91 @@ updates haven't been committed.
 
 \section{Performance evaluation}
 
+\subsection{Single client}
+
+We evaluated the marginal performance of the system by executing read,
+write and read/write operations on a single RM and on all three RMs.
+We also ended transactions with both commits and aborts.  Because the
+times to execute a single command were so low, we executed 50 commands
+in total in each transaction.  The average latencies of 1000 measures
+are given below in milliseconds.
+
+\begin{tabular}{l|r|r}
+  ~ & 1 RM & 3 RMs \\
+  \hline
+  Read + Commit  & 5.189131 & 6.955100 \\
+  Read + Abort   & 5.434654 & 7.042538 \\
+  Write + Commit & 12.987475 & 10.064491 \\
+  Write + Abort  & 12.985847 & 10.060301 \\
+  Read/Write + Commit & 7.466607 & 9.073547 \\
+  Read/Write + Abort  & 7.465912 & 9.209547 \\
+\end{tabular}
+
+A few surprising facts emerge from these figures:
+
+\begin{itemize}
+  \item When only writes are concerned, accessing the 3 RMs is faster
+    than accessing only one.
+  \item Though they have more work to perform (i.e. executing the
+    buffered commands), the commit transactions are usually a little
+    faster than the abort transactions.
+\end{itemize}
+
+A fact that can only be observed by looking at the raw data is how the
+system gets faster as more commands are sent to the system; the first
+few transactions execute in ~30ms before reaching numbers usually
+below 10ms.  We attribute this to the Java JIT that warms up and
+starts optimizing the RM methods after they've been ran a sufficient
+number of times.
+
+\subsection{Multiple clients}
+
+For our performance evaluation, we used the following parameters:
+
+\begin{itemize}
+\item A fixed number of clients was selected (5, 10, 25, 50, 100, 200,
+  500, and 1000)
+\item A sleep interval (in milliseconds) between commands was selected
+  (1000, 500, 250, 100, 50, 10)
+\end{itemize}
+
+For every combination of parameters, the following process was
+executed:
+
+\begin{enumerate}
+\item The servers were started with empty hash tables.
+\item The RMs were populated with 1000 cities (for cars
+  and hotels), 1000 flights and 1000 customers.
+\item Random commands were executed and committed by the clients for
+  60 seconds.
+\item The latency times were recorded in a file.
+\end{enumerate}
+
+The tests were ran on a Intel i7-3770S 3.10GHz.  To obtain times that
+reflected the performance of the application, the server, RMs and
+clients were all running on the same machine.  We took the arithmetic
+average of the latencies and obtained the chart below.  From this
+chart, we can make a few observations:
+
+\begin{itemize}
+\item The number of clients has a bigger impact on performance than
+  the delay between commands
+\item The latency time does not grow linearly with the number of
+  clients.
+\end{itemize}
+
+Also, not apparent in the chart, the number of deadlocks increased
+sharply as the number of clients increased, which is to be expected as
+more clients will randomly select the same resource to access.
+
+Finally a chart showing the cumulative distribution function of the
+latency times is shown.
+
+\begin{center}
+\includegraphics[scale=0.6]{avgs.pdf}
+\\
+\includegraphics[scale=0.6]{cdf.pdf}
+\end{center}
+
 
 \end{document}
