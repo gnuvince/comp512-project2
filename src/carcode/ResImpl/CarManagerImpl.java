@@ -17,6 +17,8 @@ import servercode.ResImpl.*;
 import LockManager.*;
 
 public class CarManagerImpl implements ItemManager {
+	
+	public static Registry registry;
 
     protected RMHashtable carTable = new RMHashtable();
     
@@ -45,8 +47,10 @@ public class CarManagerImpl implements ItemManager {
             ItemManager rm = (ItemManager) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry(port);
+            registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_CarManager", rm);
+            
+           
 
             System.err.println("Car Server ready");
         } 
@@ -333,12 +337,23 @@ public class CarManagerImpl implements ItemManager {
 	}
 
 	@Override
-	public void recoverItemState(int id, ReservableItem backup) {
-		/*Car curObj = fetchCar(id, backup.getKey());
-    	
-    	curObj.setCount(backup.getCount());
-    	curObj.setPrice(backup.getPrice());
-    	curObj.setReserved(backup.getReserved());*/		
+	public void recoverItemState(int id, ReservableItem backup) {	
+	}
+	
+	
+	public void shutDown() throws RemoteException{
+		
+		try{
+	        // Unregister ourself
+	        registry.unbind("Group5_CarManager");
+
+	        // Unexport; this will also remove us from the RMI runtime
+	        UnicastRemoteObject.unexportObject(this, true);
+
+	        System.out.println("Shutting Down!!! Have a good night");
+	    }
+	    catch(Exception e){}
+		
 	}
 
 

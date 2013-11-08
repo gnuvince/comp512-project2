@@ -9,9 +9,12 @@ public class TransactionManager {
 	//Same as hashMap but thread safe
 	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
 	private ConcurrentHashMap<Integer, Vector<String>> hashMap = new ConcurrentHashMap<Integer, Vector<String>>();	
+	private ConcurrentHashMap<Integer,	Long> timeToLiveMap = new ConcurrentHashMap<Integer, Long>(); 
 	private int numberOfTransactions = 0;	
 	private static TransactionManager instance = null;
-
+	
+	private long TIMEOUT = 15000;
+	
 	////Singleton class so private constructor
 	private TransactionManager(){ }
 	
@@ -25,7 +28,7 @@ public class TransactionManager {
 	
 	public int start(){
 		int id = 1;
-		
+				
 		numberOfTransactions++;
 		
 		//Generate random numbers until we get one that is not already used
@@ -33,6 +36,8 @@ public class TransactionManager {
 			id = new Random().nextInt(10000) + 1; //+1 because can return 0
 		}
 		hashMap.put(id, new Vector<String>());
+		
+		timeToLiveMap.put(id, System.currentTimeMillis());
 		
 		return id;
 	}
@@ -45,7 +50,8 @@ public class TransactionManager {
 			v.add(rm);
 		}
 		
-		hashMap.put(id, v);		
+		hashMap.put(id, v);	
+		timeToLiveMap.put(id, System.currentTimeMillis());
 	}
 	
 	public Vector<String> commit(int id) {
@@ -71,6 +77,21 @@ public class TransactionManager {
 	
 	public boolean canShutdown(){
 		return numberOfTransactions == 0 ? true: false;
+	}
+	
+	public Vector<Integer> getTimedOutTransactions(){
+		
+		Long currentTime = System.currentTimeMillis();		
+		Vector<Integer> timedOut = new Vector<Integer>();
+		
+		for (ConcurrentHashMap.Entry<Integer, Long> entry : timeToLiveMap.entrySet()) {
+			if (currentTime - entry.getValue() > TIMEOUT){
+				timedOut.add(entry.getKey());
+				timeToLiveMap.remove(entry.getKey());
+			}
+		}
+		
+		return timedOut;
 	}
 }
 	

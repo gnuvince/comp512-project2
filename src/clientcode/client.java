@@ -653,9 +653,8 @@ public class client
             	try{    
             		if (rm.shutdown()) {
             			
-            			//TODO: shut Middleware down
+            			System.exit(0);            			
             			
-            			//Shut myself?????
             		} else {        		
             			System.out.println("Couldn't shut system down, there are transactions still alive");
             		}

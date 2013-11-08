@@ -14,19 +14,18 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
-import carcode.ResImpl.Car;
-import flightcode.ResImpl.Flight;
-
 import LockManager.*;
 
 //public class ResourceManagerImpl extends java.rmi.server.UnicastRemoteObject
 public class ResourceManagerImpl implements ResourceManager {
 
+	public static Registry registry;
     protected RMHashtable m_itemHT = new RMHashtable();
     protected TransactionManager txnManager = TransactionManager.getInstance();
+    protected Thread txnKillerThread;
     protected LockManager lm = new LockManager();
     protected WorkingSet<Customer> ws = new WorkingSet<Customer>();
-
+    
     protected ItemManager rmHotel  = null;
     protected ItemManager rmCar    = null;
     protected ItemManager rmFlight = null;
@@ -63,7 +62,7 @@ public class ResourceManagerImpl implements ResourceManager {
             ResourceManager rm = (ResourceManager) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry(rmiPort);
+            registry = LocateRegistry.getRegistry(rmiPort);
             registry.rebind("Group5_ResourceManager", rm);
 
             System.err.println("Server ready");
@@ -80,7 +79,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     public ResourceManagerImpl(String carServer, int carPort, String flightServer, int flightPort, String hotelServer, int hotelPort) throws RemoteException {
-
+    	
         try {
             // get a reference to the rmiregistry on Hotel's server
             Registry registry = LocateRegistry.getRegistry(hotelServer, hotelPort);
@@ -128,6 +127,10 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Flight exception: " + e.toString());
             e.printStackTrace();
         }
+        
+        txnKillerThread = new Thread(new TransactionKiller(txnManager, this));
+        txnKillerThread.start();
+        
     }
 
     // Reads a data item
@@ -946,15 +949,26 @@ public class ResourceManagerImpl implements ResourceManager {
 		if (txnManager.canShutdown()) {
 			
 			System.out.println("SHUTTING SYSTEM DOWN");
-			//TODO shut RMS down
-			//...
+			rmCar.shutDown();
+			rmHotel.shutDown();
+			rmFlight.shutDown();
 			
+			try{
+		        // Unregister ourself
+		        registry.unbind("Group5_ResourceManager");
+
+		        // Unexport; this will also remove us from the RMI runtime
+		        UnicastRemoteObject.unexportObject(this, true);
+		        txnKillerThread.stop();
+		        System.out.println("Shutting Down!!! Have a good night");
+		    }
+		    catch(Exception e){}
 			return true;
 		}
 		
 		System.out.println("Can't shut system down since transactions are still alive");
 		return false;
-	}
+	}	
 	
 
 }

@@ -19,6 +19,7 @@ import LockManager.*;
 
 public class HotelManagerImpl implements ItemManager {
     
+	public static Registry registry;
     protected RMHashtable roomsTable = new RMHashtable();
         
     private LockManager lm = new LockManager();
@@ -44,7 +45,7 @@ public class HotelManagerImpl implements ItemManager {
             ItemManager rm = (ItemManager) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry(port);
+            registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_HotelManager", rm);
 
             System.err.println("Hotel Server ready");
@@ -336,6 +337,19 @@ public class HotelManagerImpl implements ItemManager {
     	curObj.setCount(backup.getCount());
     	curObj.setPrice(backup.getPrice());
     	curObj.setReserved(backup.getReserved());		
+	}
+	
+	public void shutDown() throws RemoteException{
+		try{
+	        // Unregister ourself
+	        registry.unbind("Group5_HotelManager");
+
+	        // Unexport; this will also remove us from the RMI runtime
+	        UnicastRemoteObject.unexportObject(this, true);
+
+	        System.out.println("Shutting Down!!! Have a good night");
+	    }
+	    catch(Exception e){}
 	}
 
 

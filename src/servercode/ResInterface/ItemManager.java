@@ -110,6 +110,8 @@ public interface ItemManager extends Remote {
     
     public void abort(int id) throws RemoteException;
     
+    public void shutDown() throws RemoteException;
+    
     /* To abort transaction */
     public void recoverItemState(int id, ReservableItem backup) throws RemoteException;
 }

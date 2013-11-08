@@ -22,6 +22,7 @@ import LockManager.*;
 
 public class FlightManagerImpl implements ItemManager {
     
+	public static Registry registry;
     protected RMHashtable flightTable = new RMHashtable();
     
     private LockManager lm = new LockManager();
@@ -47,7 +48,7 @@ public class FlightManagerImpl implements ItemManager {
             ItemManager rm = (ItemManager) UnicastRemoteObject.exportObject(obj, 0);
 
             // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry(port);
+            registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_FlightManager", rm);
 
             System.err.println("Flight Server ready");
@@ -347,5 +348,18 @@ public class FlightManagerImpl implements ItemManager {
     	curObj.setPrice(flightBackup.getPrice());
     	curObj.setReserved(flightBackup.getReserved());
     }
+	
+	public void shutDown() throws RemoteException{
+		try{
+	        // Unregister ourself
+	        registry.unbind("Group5_FlightManager");
+
+	        // Unexport; this will also remove us from the RMI runtime
+	        UnicastRemoteObject.unexportObject(this, true);
+
+	        System.out.println("Shutting Down!!! Have a good night");
+	    }
+	    catch(Exception e){}
+	}
 	
 }
