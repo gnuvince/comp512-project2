@@ -45,17 +45,24 @@ public class WorkingSet<StateType> {
 			}		
 		}
 		
-		idToCommandsMap.remove(id);		
+		//Remove currentStates of object that the txn modified
+		Vector<String> locations = idToLocationsMap.get(id);
+		if (locations != null){
+			for(String location: locations) {
+				currentStatesMap.remove(location);			
+			}
+		}
+		
+		idToCommandsMap.remove(id);
 		idToLocationsMap.remove(id);
-		currentStatesMap.remove(id);
 	}
 	
 	public void abort(int id){
-		Vector<String> items = idToLocationsMap.get(id);
+		Vector<String> locations = idToLocationsMap.get(id);
 
-		if (items != null){
-			for(String item: items) {
-				currentStatesMap.remove(item);
+		if (locations != null){
+			for(String location: locations) {
+				currentStatesMap.remove(location);
 			}
 		}
 

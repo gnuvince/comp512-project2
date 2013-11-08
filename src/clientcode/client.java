@@ -497,7 +497,7 @@ public class client
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
-                    System.out.println(e.getMessage());
+                    System.out.println(e.getMessage());                    
                     //e.printStackTrace();
                 }
                 break;
@@ -522,7 +522,7 @@ public class client
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
-                    System.out.println(e.getMessage());
+                    System.out.println(e.getMessage());                    
                     //e.printStackTrace();
                 }
                 break;
@@ -579,9 +579,11 @@ public class client
                 try{
                     Id = obj.getInt(arguments.elementAt(1));
                     Cid = obj.getInt(arguments.elementAt(2));
-                    System.out.println("GOOD SO FAR");
-                    boolean customer=rm.newCustomer(Id,Cid);
-                    System.out.println("new customer id:"+Cid);
+                    if (rm.newCustomer(Id,Cid)){
+                    	System.out.println("new customer id:"+Cid);
+                    } else {
+                    	System.out.println("Customer could not be created");
+                    }                    	
                 }
                 catch(Exception e){                	
                     System.out.println("EXCEPTION:");

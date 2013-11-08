@@ -15,6 +15,7 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
 import carcode.ResImpl.Car;
+import flightcode.ResImpl.Flight;
 
 import LockManager.*;
 
@@ -453,7 +454,7 @@ public class ResourceManagerImpl implements ResourceManager {
         if (cust == null) {
             Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
                 + ") failed--customer doesn't exist");
-            return ""; // NOTE: don't change this--WC counts on this value
+            return "Customer does not exist"; // NOTE: don't change this--WC counts on this value
             // indicating a customer does not exist...
         }
         else {
@@ -511,14 +512,24 @@ public class ResourceManagerImpl implements ResourceManager {
         }
         
         txnManager.enlist(id, "customer");
+        Customer cust;
         
-        Customer cust = (Customer) readData(id, Customer.getKey(customerID));
+        if (ws.hasItem(customerID+"")){
+    		cust = (Customer) ws.getItem(customerID+"");    		
+    	} else {
+    		cust = (Customer) readData(id, Customer.getKey(customerID));   
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    		}
+      	} 
+                
         if (cust == null) {
             cust = new Customer(customerID);
             
             ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust, this));
-            ws.sendCurrentState(cust.getKey(), cust);
-            ws.addLocationToTxn(id,  cust.getKey());            
+            ws.sendCurrentState(customerID+"", cust);
+            ws.addLocationToTxn(id,  customerID+"");            
             
             Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
                 + ") created a new customer");
