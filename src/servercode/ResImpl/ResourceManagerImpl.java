@@ -14,6 +14,8 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import carcode.ResImpl.Car;
+
 import LockManager.*;
 
 //public class ResourceManagerImpl extends java.rmi.server.UnicastRemoteObject
@@ -22,6 +24,7 @@ public class ResourceManagerImpl implements ResourceManager {
     protected RMHashtable m_itemHT = new RMHashtable();
     protected TransactionManager txnManager = TransactionManager.getInstance();
     protected LockManager lm = new LockManager();
+    protected WorkingSet<Customer> ws = new WorkingSet<Customer>();
 
     protected ItemManager rmHotel  = null;
     protected ItemManager rmCar    = null;
@@ -134,14 +137,14 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Writes a data item
-    private void writeData(int id, String key, RMItem value) {
+    public void writeData(int id, String key, RMItem value) {
         synchronized (m_itemHT) {
             m_itemHT.put(key, value);
         }
     }
 
     // Remove the item out of storage
-    protected RMItem removeData(int id, String key) {
+    public RMItem removeData(int id, String key) {
         synchronized (m_itemHT) {
             return (RMItem) m_itemHT.remove(key);
         }
@@ -438,8 +441,15 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new DeadlockException(id, String.valueOf(customerID));
         }
         
+        Customer cust;
+        
+        if (ws.hasItem(customerID+"")){
+    		cust = (Customer) ws.getItem(customerID+"");    		
+    	} else {
+    		cust = (Customer) readData(id, Customer.getKey(customerID));    		    
+      	}
+        
         txnManager.enlist(id, "customer");
-        Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             Trace.warn("RM::queryCustomerInfo(" + id + ", " + customerID
                 + ") failed--customer doesn't exist");
@@ -448,6 +458,7 @@ public class ResourceManagerImpl implements ResourceManager {
         }
         else {
             String s = cust.printBill();
+            
             Trace.info("RM::queryCustomerInfo(" + id + ", " + customerID
                 + "), bill follows...");
             System.out.println(s);
@@ -476,7 +487,11 @@ public class ResourceManagerImpl implements ResourceManager {
         
         txnManager.enlist(id, "customer");
         Customer cust = new Customer(cid);
-        writeData(id, cust.getKey(), cust);
+        
+        ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust, this));
+        ws.sendCurrentState(cust.getKey(), cust);
+        ws.addLocationToTxn(id,  cust.getKey());
+        //writeData(id, cust.getKey(), cust);
         Trace.info("RM::newCustomer(" + cid + ") returns ID=" + cid);
         return cid;
     }
@@ -496,10 +511,15 @@ public class ResourceManagerImpl implements ResourceManager {
         }
         
         txnManager.enlist(id, "customer");
+        
         Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             cust = new Customer(customerID);
-            writeData(id, cust.getKey(), cust);
+            
+            ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust, this));
+            ws.sendCurrentState(cust.getKey(), cust);
+            ws.addLocationToTxn(id,  cust.getKey());            
+            
             Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
                 + ") created a new customer");
             return true;
@@ -526,8 +546,21 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw new DeadlockException(id, String.valueOf(customerID));
         }
         
+        Customer cust;
+    	
+    	if (ws.hasItem(customerID+"")){
+    		cust = (Customer) ws.getItem(customerID+"");    		
+    	} else {
+    		cust = (Customer) readData(id, Customer.getKey(customerID));
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    			ws.sendCurrentState(customerID+"", cust);
+        		ws.addLocationToTxn(id,  customerID+"");
+    		}
+      	}
+        
         txnManager.enlist(id, "customer");
-        Customer cust = (Customer) readData(id, Customer.getKey(customerID));
         if (cust == null) {
             Trace.warn("RM::deleteCustomer(" + id + ", " + customerID
                 + ") failed--customer doesn't exist");
@@ -549,33 +582,39 @@ public class ResourceManagerImpl implements ResourceManager {
                 if (itemType.equals("room")) {
                 	try {
                 		rmHotel.cancelItem(id, reserveditem.getKey(), reserveditem.getCount());
+                		txnManager.enlist(id, "hotel");
                     } catch (DeadlockException exc) {
                     	Trace.error(exc.getMessage());
-                    	//TODO: Abort TXN
+                    	this.abort(id);
+                    	throw exc;
                     }                    
                 }
                 else if (itemType.equals("car")) {
                 	try {
                 		rmCar.cancelItem(id, reserveditem.getKey(), reserveditem.getCount());
+                		txnManager.enlist(id, "car");
                     } catch (DeadlockException exc) {
                     	Trace.error(exc.getMessage());
-                    	//Abort TXN
+                    	this.abort(id);
+                    	throw exc;
                     }                    
                 }
                 else if (itemType.equals("flight")) {
                 	try {
                 		rmFlight.cancelItem(id, reserveditem.getKey(), reserveditem.getCount());
+                		txnManager.enlist(id, "flight");
                     } catch (DeadlockException exc) {
                     	Trace.error(exc.getMessage());
-                    	//Abort TXN
+                    	this.abort(id);
+                    	throw exc;
                     }                    
                 }
-
             }
 
             // remove the customer from the storage
-            removeData(id, cust.getKey());
-
+            ws.addCommand(id, new CommandCustomerDelete(id, cust.getKey(), this));            
+            ws.deleteItem(customerID+"");
+            
             Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") succeeded");
             return true;
         } 
@@ -596,7 +635,20 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw exc;
         }    
     	
-        Customer cust = getCustomer(customerID);
+        Customer cust;
+    	
+    	if (ws.hasItem(customerID+"")){
+    		cust = (Customer) ws.getItem(customerID+"");    		
+    	} else {
+    		cust = getCustomer(customerID);
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    			ws.sendCurrentState(customerID+"", cust);
+        		ws.addLocationToTxn(id,  customerID+""); 
+    		}
+      	}
+        
         if (cust == null) {
             return false;
         }      
@@ -607,10 +659,14 @@ public class ResourceManagerImpl implements ResourceManager {
         	txnManager.enlist(id, "car");        	
         } catch (DeadlockException exc) {
         	Trace.error(exc.getMessage());
+        	this.abort(id);
+        	throw exc;
         }         
         
         if (reservedItem != null) {
+        	       	
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
+            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust, this));
 
             return true;
         }
@@ -633,7 +689,20 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw exc;
         }  
     	
-        Customer cust = getCustomer(customerID);
+    	Customer cust;
+    	
+    	if (ws.hasItem(customerID+"")){
+    		cust = (Customer) ws.getItem(customerID+"");    		
+    	} else {
+    		cust = getCustomer(customerID);
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    			ws.sendCurrentState(customerID+"", cust);
+        		ws.addLocationToTxn(id,  customerID+""); 
+    		}
+      	}
+    	
         if (cust == null) {
             return false;
         }
@@ -644,11 +713,13 @@ public class ResourceManagerImpl implements ResourceManager {
         	txnManager.enlist(id, "hotel");
         } catch (DeadlockException exc) {
         	Trace.error(exc.getMessage());
+        	this.abort(id);
+        	throw exc;
         }  
 
         if (reservedItem != null) {
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
-
+            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust, this));
             return true;
         }
 
@@ -670,8 +741,21 @@ public class ResourceManagerImpl implements ResourceManager {
         	throw exc;
         }  
     	
-        Customer cust = getCustomer(customerID);
-        if (cust == null) {
+    	Customer cust;
+    	
+    	if (ws.hasItem(customerID+"")){
+    		cust = (Customer) ws.getItem(customerID+"");    		
+    	} else {
+    		cust = getCustomer(customerID);
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    			ws.sendCurrentState(customerID+"", cust);
+        		ws.addLocationToTxn(id,  customerID+""); 
+    		}
+      	}
+
+    	if (cust == null) {
             return false;
         }
 
@@ -682,12 +766,14 @@ public class ResourceManagerImpl implements ResourceManager {
         	reservedItem = rmFlight.reserveItem(id, cust.getKey(), strflightNum);        	
         	txnManager.enlist(id, "flight");
         } catch (DeadlockException exc) {
-        	Trace.error(exc.getMessage());        	
+        	Trace.error(exc.getMessage());        
+        	this.abort(id);
         	throw exc;
         }  
         
         if (reservedItem != null) {
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
+            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust, this));
             return true;
         }
 
@@ -710,9 +796,23 @@ public class ResourceManagerImpl implements ResourceManager {
     	} catch (DeadlockException exc) {
         	throw exc;
         }  
+    	
+    	Customer cust;
+    	
+    	if (ws.hasItem(customer+"")){
+    		cust = (Customer) ws.getItem(customer+"");    		
+    	} else {
+    		cust = getCustomer(customer);
+    		
+    		if (cust != null) {
+    			cust = cust.getCopy();
+    			ws.sendCurrentState(customer+"", cust);
+        		ws.addLocationToTxn(id,  customer+""); 
+    		}
+      	}
 
-        Customer cust = getCustomer(customer);
         if (cust == null) {
+        	this.abort(id);
             return false;
         }
 
@@ -736,48 +836,39 @@ public class ResourceManagerImpl implements ResourceManager {
         		this.abort(id);
         		throw new TransactionAbortedException(id);
         	}      
-        	
-        	//note: reserved flight is added to customer in reserveFlight()
         }
         
         if (car) {       	
-        	ReservedItem reservedCar = null;
-        	
+        	boolean carResult;
         	try {
-        		reservedCar = rmCar.reserveItem(id, cust.getKey(), location);        		
+        		carResult = reserveCar(id, cust.getID(), location);        		
         	} catch (DeadlockException e) {
         		Trace.error(e.getMessage());
         		this.abort(id);
         		throw new TransactionAbortedException(id);
         	}
             
-            if (reservedCar == null) {
+            if (!carResult) {
             	this.abort(id);
         		throw new TransactionAbortedException(id);
             }
-            
-            txnManager.enlist(id, "car");
-            cust.reserve(reservedCar.getKey(), reservedCar.getLocation(), reservedCar.getPrice());
         }
 
         if (room) {
             // Try to reserve a room at destination
-        	ReservedItem reservedRoom = null;
+        	boolean roomResult;
         	try {
-        		reservedRoom = rmHotel.reserveItem(id, cust.getKey(), location);
+        		roomResult = reserveRoom(id, cust.getID(), location);
         	} catch (DeadlockException e) {
         		Trace.error(e.getMessage());
         		this.abort(id);
         		throw new TransactionAbortedException(id);
         	}            
             
-            if (reservedRoom == null) {
+            if (!roomResult) {
             	this.abort(id);
         		throw new TransactionAbortedException(id);
             }
-
-            txnManager.enlist(id, "hotel");
-            cust.reserve(reservedRoom.getKey(), reservedRoom.getLocation(), reservedRoom.getPrice());
         }
 
         return true;
@@ -807,6 +898,7 @@ public class ResourceManagerImpl implements ResourceManager {
 				rmHotel.commit(id);	
 			else if (rm.equals("customer")){			
 				lm.UnlockAll(id);
+				ws.commit(id);
 			}
 		}
 		
@@ -831,8 +923,8 @@ public class ResourceManagerImpl implements ResourceManager {
 			else if (rm.equals("hotel"))
 				rmHotel.abort(id);	
 			else if (rm.equals("customer")){
-				//undoManager.performAllUndoCommands(id);
 				lm.UnlockAll(id);
+				ws.abort(id);
 			}
 		}
 	}

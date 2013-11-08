@@ -6,6 +6,8 @@ package servercode.ResImpl;
 
 import java.util.*;
 
+import flightcode.ResImpl.Flight;
+
 public class Customer extends RMItem {
     public Customer(int id) {
         super();
@@ -81,6 +83,19 @@ public class Customer extends RMItem {
         catch (Exception e) {
             return null;
         } // catch
+    }
+    
+    public Customer getCopy(){
+    	Customer copy = new Customer(this.getID());
+    	
+    	RMHashtable htCopy = new RMHashtable();
+    	for (Enumeration e = m_Reservations.keys(); e.hasMoreElements();) {
+            Object key = e.nextElement();
+            ReservedItem value = (ReservedItem) m_Reservations.get(key);
+            htCopy.put(key, value.getCopy());
+        }
+    	
+    	return copy;
     }
 
     private int         m_nID;

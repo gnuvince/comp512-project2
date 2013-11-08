@@ -22,7 +22,7 @@ public class HotelManagerImpl implements ItemManager {
     protected RMHashtable roomsTable = new RMHashtable();
         
     private LockManager lm = new LockManager();
-    private WorkingSetItem ws = new WorkingSetItem();
+    private WorkingSet<Hotel> ws = new WorkingSet<Hotel>();
     
     public static void main(String args[]) {
     	
@@ -90,8 +90,8 @@ public class HotelManagerImpl implements ItemManager {
             Hotel newObj = new Hotel(location, quantity, price);
             
             ws.addCommand(id, new CommandPut(id, newObj.getKey(), newObj, this));
-            ws.sendItem(newObj);
-            ws.setItemForTxn(id, location);            
+            ws.sendCurrentState(newObj.getLocation(), newObj);
+            ws.addLocationToTxn(id, location);            
             
             Trace.info("RM::addHotel(" + id + ") created new location "
                     + location + ", count=" + quantity + ", price=$" + price);
@@ -107,8 +107,8 @@ public class HotelManagerImpl implements ItemManager {
             }
             
             ws.addCommand(id, new CommandPut(id, Hotel.getKey(location), curObj, this));
-            ws.sendItem(curObj);            
-            ws.setItemForTxn(id, location);
+            ws.sendCurrentState(curObj.getLocation(), curObj);            
+            ws.addLocationToTxn(id, location);
 
             Trace.info("RM::addHotel(" + id + ") modified existing location "
                     + location + ", count=" + curObj.getCount() + ", price=$"
@@ -147,12 +147,12 @@ public class HotelManagerImpl implements ItemManager {
         else {
             if (curObj.getReserved() == 0) {            	
             	
-            	ws.sendItem(curObj);
+            	ws.sendCurrentState(curObj.getLocation(), curObj);
             	
             	ws.deleteItem(curObj.getLocation()); //the item stays in ws but its current state is set to null
             	
             	ws.addCommand(id, new CommandDelete(id, curObj.getKey(), this));
-            	ws.setItemForTxn(id, location);
+            	ws.addLocationToTxn(id, location);
 
                 Trace.info("RM::deleteItem(" + id + ", " + itemId+ ") item deleted");
                 return true;
@@ -179,12 +179,6 @@ public class HotelManagerImpl implements ItemManager {
     		curObj = (Hotel) ws.getItem(location);    		
     	} else {
     		curObj = fetchHotel(id, Hotel.getKey(location));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-    		    		
-    			ws.sendItem(curObj);
-    			ws.setItemForTxn(id, location);
-    		}
     	}
     	
         if (curObj != null) {
@@ -209,12 +203,6 @@ public class HotelManagerImpl implements ItemManager {
     		curObj = (Hotel) ws.getItem(location);    		
     	} else {
     		curObj = fetchHotel(id, Hotel.getKey(location));	
-    		if (curObj != null) {
-    			curObj = curObj.getCopy();
-
-    			ws.sendItem(curObj);
-    			ws.setItemForTxn(id, location);
-    		}
     	}
     	
         if (curObj != null) {
@@ -242,8 +230,8 @@ public class HotelManagerImpl implements ItemManager {
     		curObj = fetchHotel(id, Hotel.getKey(location));
     		if (curObj != null) {
     			curObj = curObj.getCopy();
-    			ws.sendItem(curObj);
-        		ws.setItemForTxn(id,  location);
+    			ws.sendCurrentState(curObj.getLocation(), curObj);
+        		ws.addLocationToTxn(id,  location);
     		}
     	}
         
@@ -292,8 +280,8 @@ public class HotelManagerImpl implements ItemManager {
     		curObj = fetchHotel(id, hotelKey);    		
     		if (curObj != null) {
     			curObj = curObj.getCopy();
-    			ws.sendItem(curObj);
-        		ws.setItemForTxn(id,  location);
+    			ws.sendCurrentState(curObj.getLocation(), curObj);
+        		ws.addLocationToTxn(id,  location);
     		}
     	}
     	
