@@ -1,0 +1,55 @@
+@startuml
+autonumber
+
+actor Client as C
+participant Middleware as MW
+participant TransactionManager as TM
+participant CarManager as CM
+participant CarWorkingSet as WS
+participant CarLockManager as CLM
+
+== Start transaction ==
+
+C -> MW : start
+MW -> TM: start
+TM -> MW: xid
+MW -> C: xid
+
+== Add a new car ==
+
+C -> MW: newcar(xid,MTL,5,30)
+MW -> TM: isValidTransaction(xid)
+TM -> MW: true
+MW -> CM: addItem(xid,MTL,5,30)
+CM -> CLM: Lock(xid,MTL,WRITE)
+CLM -> CM: OK
+CM -> WS: hasItem(MTL)
+WS -> CM: false
+CM --> CM: fetchCar(MTL)
+CM --> CM: null
+CM --> CM: curObj = new Car(MTL, 5, 30)
+CM -> WS: addCommand(Put(xid, MTL, curObj))
+CM -> WS: setCurrentState(MTL, curObj)
+CM -> WS: addLocationForTxn(xid, MTL)
+CM -> MW: true
+MW -> TM: enlist(xid, "Car")
+MW -> C: true
+
+== Commit transaction ==
+
+C -> MW: commit(xid)
+MW -> TM: isValidTransaction(xid)
+TM -> MW: true
+MW -> TM: commit(xid)
+TM --> TM: remove(xid)
+TM -> MW: ["Car"]
+MW -> CM: commit(xid)
+CM -> WS: commit(xid)
+WS --> WS: Execute all commands
+CM -> CLM: UnlockAll(xid)
+CLM -> CM: OK
+CM -> MW: OK
+MW -> C: OK
+
+
+@enduml

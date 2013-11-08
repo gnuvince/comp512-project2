@@ -207,14 +207,14 @@ public class LockManager {
     private boolean LockConflict(DataObj dataObj, BitSet bitset)
         throws DeadlockException, RedundantLockRequestException {
         Vector vect = lockTable.elements(dataObj);
-        DataObj dataObj2;
+        DataObj existingDataObj;
         int size = vect.size();
 
         // as soon as a lock that conflicts with the current lock request is
         // found, return true
         for (int i = 0; i < size; i++) {
-            dataObj2 = (DataObj) vect.elementAt(i);
-            if (dataObj.getXId() == dataObj2.getXId()) {
+            existingDataObj = (DataObj) vect.elementAt(i);
+            if (dataObj.getXId() == existingDataObj.getXId()) {
                 // the transaction already has a lock on this data item which
                 // means that it is either
                 // relocking it or is converting the lock
@@ -238,7 +238,7 @@ public class LockManager {
                     // *** ADD CODE HERE *** to take care of both these cases
                     
                     // If we already have a WRITE lock, we thrown an exception.
-                    if (dataObj2.getLockType() == LockType.WRITE) {
+                    if (existingDataObj.getLockType() == LockType.WRITE) {
                         throw new RedundantLockRequestException(dataObj.getXId(),
                             "Redundant WRITE lock request");
                     }
@@ -248,7 +248,7 @@ public class LockManager {
                     // upgrade.  If the count is greater than one, it means at
                     // least one other transaction has a lock, and we can't do
                     // the lock upgrade.
-                    else if (dataObj2.getLockType() == LockType.READ) {
+                    else if (existingDataObj.getLockType() == LockType.READ) {
                         int identicalDataNames = 0;
                         for (Object o: vect) {
                             DataObj d = (DataObj) o;
@@ -264,7 +264,7 @@ public class LockManager {
             }
             else {
                 if (dataObj.getLockType() == LockType.READ) {
-                    if (dataObj2.getLockType() == LockType.WRITE) {
+                    if (existingDataObj.getLockType() == LockType.WRITE) {
                         // transaction is requesting a READ lock and some other
                         // transaction
                         // already has a WRITE lock on it ==> conflict
