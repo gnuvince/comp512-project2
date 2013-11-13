@@ -13,7 +13,7 @@ public class TransactionManager {
 	private int numberOfTransactions = 0;	
 	private static TransactionManager instance = null;
 	
-	private long TIMEOUT = 15000;
+	private long TIMEOUT = 120000;
 	
 	////Singleton class so private constructor
 	private TransactionManager(){ }
