@@ -1,10 +1,11 @@
 package servercode.ResImpl;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class WorkingSet<StateType> {
+public class WorkingSet<StateType> implements Serializable {
 	
 	private ConcurrentHashMap<Integer, Vector<Command>> idToCommandsMap = new ConcurrentHashMap<Integer, Vector<Command>>();
 	protected ConcurrentHashMap<Integer, Vector<String>> idToLocationsMap = new ConcurrentHashMap<Integer, Vector<String>>();

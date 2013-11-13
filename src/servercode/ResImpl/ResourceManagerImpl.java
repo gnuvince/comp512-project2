@@ -905,18 +905,18 @@ public class ResourceManagerImpl implements ResourceManager {
 		System.out.println("Committing transaction: " + id);
 		Vector<String> rms = txnManager.commit(id);
 				 
-		for(String rm: rms) {
-			if (rm.equals("car"))
-				rmCar.commit(id);
-			else if (rm.equals("flight"))
-				rmFlight.commit(id);
-			else if (rm.equals("hotel"))
-				rmHotel.commit(id);	
-			else if (rm.equals("customer")){			
-				lm.UnlockAll(id);
-				ws.commit(id);
-			}
-		}
+//		for(String rm: rms) {
+//			if (rm.equals("car"))
+//				rmCar.commit(id);
+//			else if (rm.equals("flight"))
+//				rmFlight.commit(id);
+//			else if (rm.equals("hotel"))
+//				rmHotel.commit(id);	
+//			else if (rm.equals("customer")){			
+//				lm.UnlockAll(id);
+//				ws.commit(id);
+//			}
+//		}
 		
 		return true; //Commits always succeed since there is no failures yet
 	}

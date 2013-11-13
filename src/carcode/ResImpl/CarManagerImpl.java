@@ -72,11 +72,8 @@ public class CarManagerImpl implements ItemManager {
     public CarManagerImpl() {
     	File mrFile = new File(getMasterRecordFileName());
     	if (mrFile.exists()) {
-    		System.out.println("HELLO1");
     		masterRecord = (MasterRecord) SerializeUtils.loadFromDisk(getMasterRecordFileName());
-    		System.out.println("HELLO2");
     		carTable = (RMHashtable) SerializeUtils.loadFromDisk(getCommittedFileName());
-    		System.out.println("HELLO3");
     	}
     }
     

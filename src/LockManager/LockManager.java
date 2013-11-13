@@ -1,9 +1,10 @@
 package LockManager;
 
+import java.io.Serializable;
 import java.util.BitSet;
 import java.util.Vector;
 
-public class LockManager {
+public class LockManager implements Serializable {
     private static int         TABLE_SIZE       = 2039;
     private static int         DEADLOCK_TIMEOUT = 30000;
 

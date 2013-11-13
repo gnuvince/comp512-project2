@@ -1,6 +1,8 @@
 package servercode.ResImpl;
 
-public abstract class Command {
+import java.io.Serializable;
+
+public abstract class Command implements Serializable {
 	
 	public Command(){		
 		

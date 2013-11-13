@@ -1,5 +1,6 @@
 package servercode.ResInterface;
 
+import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
@@ -9,7 +10,7 @@ import servercode.ResImpl.InvalidTransactionException;
 import servercode.ResImpl.ReservedItem;
 import servercode.ResImpl.ReservableItem;
 
-public interface ItemManager extends Remote {
+public interface ItemManager extends Remote, Serializable {
     /**
      * Add an item to the manager's hash table.
      * 
