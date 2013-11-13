@@ -4,8 +4,17 @@ import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
+import servercode.ResInterface.ItemManager;
+import servercode.ResInterface.ResourceManager;
+
 public class TransactionManager {
 
+
+	private ItemManager rmCar;
+	private ItemManager rmFlight; 
+	private ItemManager rmHotel;
+	private ResourceManager rm;
+	
 	//Same as hashMap but thread safe
 	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
 	private ConcurrentHashMap<Integer, Vector<String>> hashMap = new ConcurrentHashMap<Integer, Vector<String>>();	
@@ -16,11 +25,19 @@ public class TransactionManager {
 	private long TIMEOUT = 120000;
 	
 	////Singleton class so private constructor
-	private TransactionManager(){ }
+	private TransactionManager(ItemManager carRm, ItemManager flightRm,
+			ItemManager hotelRm, ResourceManager rm) {
+		super();
+		this.rmCar = carRm;
+		this.rmFlight = flightRm;
+		this.rmHotel = hotelRm;
+		this.rm = rm;
+	}
 	
-	public static TransactionManager getInstance() {		
+	
+	public static TransactionManager getInstance(ItemManager carRm, ItemManager flightRm, ItemManager hotelRm, ResourceManager rm) {		
 		if(instance == null) {
-			instance = new TransactionManager();
+			instance = new TransactionManager(carRm, flightRm, hotelRm, rm);
 	    }
 	
 		return instance;		
@@ -56,6 +73,22 @@ public class TransactionManager {
 	
 	public Vector<String> commit(int id) {
 		Vector<String> v = hashMap.get(id);
+		
+		/*
+		 * for each rm in v:
+		 *   Thread.run {
+		 *     rm.prepare(xid)
+		 *     wait for response
+		 *   }
+		 * if all YES:
+		 *   commit
+		 *   send commit to v
+		 * else:
+		 *   abort
+		 *   send abort to v 
+		 */
+		
+		
 		hashMap.remove(id);
 		timeToLiveMap.remove(id);
 		

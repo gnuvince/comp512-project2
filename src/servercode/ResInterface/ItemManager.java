@@ -5,6 +5,7 @@ import java.rmi.RemoteException;
 
 //import flightcode.ResImpl.Flight;
 import LockManager.DeadlockException;
+import servercode.ResImpl.InvalidTransactionException;
 import servercode.ResImpl.ReservedItem;
 import servercode.ResImpl.ReservableItem;
 
@@ -112,6 +113,6 @@ public interface ItemManager extends Remote {
     
     public void shutDown() throws RemoteException;
     
-    /* To abort transaction */
-    public void recoverItemState(int id, ReservableItem backup) throws RemoteException;
+    public int prepare(int xid) throws RemoteException, InvalidTransactionException;
+    
 }

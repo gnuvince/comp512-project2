@@ -21,7 +21,6 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	public static Registry registry;
     protected RMHashtable m_itemHT = new RMHashtable();
-    protected TransactionManager txnManager = TransactionManager.getInstance();
     protected Thread txnKillerThread;
     protected LockManager lm = new LockManager();
     protected WorkingSet<Customer> ws = new WorkingSet<Customer>();
@@ -29,6 +28,8 @@ public class ResourceManagerImpl implements ResourceManager {
     protected ItemManager rmHotel  = null;
     protected ItemManager rmCar    = null;
     protected ItemManager rmFlight = null;
+    protected TransactionManager txnManager;
+    
 
     public static void main(String args[]) {
         
@@ -128,6 +129,7 @@ public class ResourceManagerImpl implements ResourceManager {
             e.printStackTrace();
         }
         
+        txnManager = TransactionManager.getInstance(rmCar, rmFlight, rmHotel, this);
         txnKillerThread = new Thread(new TransactionKiller(txnManager, this));
         txnKillerThread.start();
         

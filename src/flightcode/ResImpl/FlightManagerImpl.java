@@ -361,5 +361,12 @@ public class FlightManagerImpl implements ItemManager {
 	    }
 	    catch(Exception e){}
 	}
-	
+
+	@Override
+	public int prepare(int xid) throws RemoteException,
+			InvalidTransactionException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

@@ -1,31 +1,36 @@
 package carcode.ResImpl;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.File;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
-import servercode.ResInterface.*;
-import servercode.ResImpl.*;
-import LockManager.*;
+import servercode.ResImpl.CommandDelete;
+import servercode.ResImpl.CommandPut;
+import servercode.ResImpl.InvalidTransactionException;
+import servercode.ResImpl.MasterRecord;
+import servercode.ResImpl.RMHashtable;
+import servercode.ResImpl.ReservableItem;
+import servercode.ResImpl.ReservedItem;
+import servercode.ResImpl.SerializeUtils;
+import servercode.ResImpl.Trace;
+import servercode.ResImpl.WorkingSet;
+import servercode.ResInterface.ItemManager;
+import LockManager.DeadlockException;
+import LockManager.LockManager;
+import LockManager.LockType;
 
 public class CarManagerImpl implements ItemManager {
 	
 	public static Registry registry;
-
-    protected RMHashtable carTable = new RMHashtable();
-    
-    private LockManager lm = new LockManager();
-    
-    private WorkingSet<Car> ws = new WorkingSet<Car>();
-
+	protected RMHashtable carTable = new RMHashtable();
+	private LockManager lm = new LockManager();
+	private WorkingSet<Car> ws = new WorkingSet<Car>();
+	
+	private MasterRecord masterRecord = new MasterRecord();
+	
     public static void main(String args[]) {
     	
         int port = 5006;
@@ -50,8 +55,6 @@ public class CarManagerImpl implements ItemManager {
             registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_CarManager", rm);
             
-           
-
             System.err.println("Car Server ready");
         } 
         catch (Exception e) 
@@ -64,6 +67,17 @@ public class CarManagerImpl implements ItemManager {
         if (System.getSecurityManager() == null) {
             System.setSecurityManager(new RMISecurityManager());
         }
+    }
+    
+    public CarManagerImpl() {
+    	File mrFile = new File(getMasterRecordFileName());
+    	if (mrFile.exists()) {
+    		System.out.println("HELLO1");
+    		masterRecord = (MasterRecord) SerializeUtils.loadFromDisk(getMasterRecordFileName());
+    		System.out.println("HELLO2");
+    		carTable = (RMHashtable) SerializeUtils.loadFromDisk(getCommittedFileName());
+    		System.out.println("HELLO3");
+    	}
     }
     
     @Override
@@ -325,28 +339,34 @@ public class CarManagerImpl implements ItemManager {
     }
 
 	@Override
-	public boolean commit(int id) throws RemoteException {
-		ws.commit(id);		
+	synchronized public boolean commit(int id) throws RemoteException {
+		ws.commit(id);
+		
+		SerializeUtils.saveToDisk(carTable, getWorkingFileName());
+		masterRecord.setLastXid(id);
+		masterRecord.swap();
+		SerializeUtils.saveToDisk(masterRecord, getMasterRecordFileName());
+		SerializeUtils.deleteFile("/tmp/Group5/car_" + id + ".ws");
+		
 		return lm.UnlockAll(id);
 	}
 
 	@Override
 	public void abort(int id) throws RemoteException {
 		ws.abort(id);
+		
+		SerializeUtils.deleteFile("/tmp/Group5/car_" + id + ".ws");
+		
 		lm.UnlockAll(id);		
 	}
 
-	@Override
-	public void recoverItemState(int id, ReservableItem backup) {	
-	}
-	
 	
 	public void shutDown() throws RemoteException{
 		
 		try{
 	        // Unregister ourself
 	        registry.unbind("Group5_CarManager");
-
+	        
 	        // Unexport; this will also remove us from the RMI runtime
 	        UnicastRemoteObject.unexportObject(this, true);
 
@@ -355,6 +375,27 @@ public class CarManagerImpl implements ItemManager {
 	    catch(Exception e){}
 		
 	}
+	
 
+	@Override
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
+		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
+		return 1;
+	}
 
+	private String getCommittedFileName() {
+		return "/tmp/Group5/cardb." + masterRecord.getCommittedIndex();
+	}
+
+	private String getWorkingFileName() {
+		return "/tmp/Group5/cardb." + masterRecord.getWorkingIndex();
+	}
+	
+	private String getMasterRecordFileName() {
+		return "/tmp/Group5/cardb.mr";
+	}
+
+	private String getWorkingSetFileName(int xid) {
+		return "/tmp/Group5/car_" + xid + ".ws";
+	}
 }

@@ -329,15 +329,6 @@ public class HotelManagerImpl implements ItemManager {
 		ws.abort(id);
 		lm.UnlockAll(id);
 	}
-
-	@Override
-	public void recoverItemState(int id, ReservableItem backup) {
-		Hotel curObj = fetchHotel(id, backup.getKey());
-    	
-    	curObj.setCount(backup.getCount());
-    	curObj.setPrice(backup.getPrice());
-    	curObj.setReserved(backup.getReserved());		
-	}
 	
 	public void shutDown() throws RemoteException{
 		try{
@@ -351,6 +342,14 @@ public class HotelManagerImpl implements ItemManager {
 	    }
 	    catch(Exception e){}
 	}
+
+	@Override
+	public int prepare(int xid) throws RemoteException,
+			InvalidTransactionException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 
 
 }
