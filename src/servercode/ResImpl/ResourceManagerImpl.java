@@ -970,6 +970,18 @@ public class ResourceManagerImpl implements ResourceManager {
 		
 		System.out.println("Can't shut system down since transactions are still alive");
 		return false;
+	}
+
+	@Override
+	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException {
+		if (rmName.equals("tm"))
+			txnManager.setCrashCondition(crashCondition);
+		else if (rmName.equals("car"))
+			rmCar.setCrashCondition(crashCondition);
+		else if (rmName.equals("flight"))
+			rmFlight.setCrashCondition(crashCondition);
+		else if (rmName.equals("hotel"))
+			rmHotel.setCrashCondition(crashCondition);
 	}	
 	
 

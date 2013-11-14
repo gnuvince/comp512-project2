@@ -15,6 +15,7 @@ HOTELPORT=5008
 all: compile jarfile 
 
 compile: 
+	mkdir -p /tmp/Group5
 	find src -name '*.java' -print0 | xargs -0 javac -g -d $(BINDIR) -cp $(BINDIR)
 
 lockcode:

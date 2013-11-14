@@ -9,6 +9,8 @@ import java.rmi.server.UnicastRemoteObject;
 
 import servercode.ResImpl.CommandDelete;
 import servercode.ResImpl.CommandPut;
+import servercode.ResImpl.Crash;
+import servercode.ResImpl.CrashException;
 import servercode.ResImpl.InvalidTransactionException;
 import servercode.ResImpl.MasterRecord;
 import servercode.ResImpl.RMHashtable;
@@ -30,8 +32,10 @@ public class CarManagerImpl implements ItemManager {
 	private WorkingSet<Car> ws = new WorkingSet<Car>();
 	
 	private MasterRecord masterRecord = new MasterRecord();
+	private Crash crashCondition;
 	
-    public static void main(String args[]) {
+  
+	public static void main(String args[]) {
     	
         int port = 5006;
         
@@ -336,7 +340,8 @@ public class CarManagerImpl implements ItemManager {
     }
 
 	@Override
-	synchronized public boolean commit(int id) throws RemoteException {
+	synchronized public boolean commit(int id) throws RemoteException, CrashException {
+		if (crashCondition == Crash.P_A_COMMITRECV) { throw new CrashException(); }		
 		ws.commit(id);
 		
 		SerializeUtils.saveToDisk(carTable, getWorkingFileName());
@@ -375,8 +380,9 @@ public class CarManagerImpl implements ItemManager {
 	
 
 	@Override
-	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
-		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException, CrashException {
+		if (crashCondition == Crash.P_A_PREPARE) { throw new CrashException(); }
+		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));			
 		return 1;
 	}
 
@@ -395,4 +401,10 @@ public class CarManagerImpl implements ItemManager {
 	private String getWorkingSetFileName(int xid) {
 		return "/tmp/Group5/car_" + xid + ".ws";
 	}
+
+	@Override
+	public void setCrashCondition(Crash crashCondition) {
+		this.crashCondition = crashCondition;
+	}
+
 }

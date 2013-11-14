@@ -6,6 +6,8 @@ import java.rmi.RemoteException;
 
 //import flightcode.ResImpl.Flight;
 import LockManager.DeadlockException;
+import servercode.ResImpl.Crash;
+import servercode.ResImpl.CrashException;
 import servercode.ResImpl.InvalidTransactionException;
 import servercode.ResImpl.ReservedItem;
 import servercode.ResImpl.ReservableItem;
@@ -108,12 +110,14 @@ public interface ItemManager extends Remote, Serializable {
      * @return true if commit is successful, false otherwise
      * @throws RemoteException
      */
-    public boolean commit(int id) throws RemoteException;
+    public boolean commit(int id) throws RemoteException, CrashException;
     
     public void abort(int id) throws RemoteException;
     
     public void shutDown() throws RemoteException;
     
-    public int prepare(int xid) throws RemoteException, InvalidTransactionException;
+    public int prepare(int xid) throws RemoteException, InvalidTransactionException, CrashException;
+    
+	public void setCrashCondition(Crash crashCondition) throws RemoteException;
     
 }

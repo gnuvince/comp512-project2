@@ -350,6 +350,12 @@ public class HotelManagerImpl implements ItemManager {
 		return 0;
 	}
 
+	@Override
+	public void setCrashCondition(Crash crashCondition) throws RemoteException {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 
 }

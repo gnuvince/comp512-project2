@@ -3,6 +3,7 @@ package servercode.ResInterface;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+import servercode.ResImpl.Crash;
 import servercode.ResImpl.InvalidTransactionException;
 import servercode.ResImpl.TransactionAbortedException;
 
@@ -131,5 +132,7 @@ public interface ResourceManager extends Remote {
     public void abort(int id) throws RemoteException, InvalidTransactionException;
     
     public boolean shutdown() throws RemoteException;
+
+	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException;
 
 }

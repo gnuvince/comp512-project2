@@ -25,6 +25,7 @@ public class TransactionManager {
 	private static TransactionManager instance = null;
 	
 	private long TIMEOUT = 120000;
+	private Crash crashCondition;
 	
 	////Singleton class so private constructor
 	private TransactionManager(ItemManager carRm, ItemManager flightRm,
@@ -97,18 +98,24 @@ public class TransactionManager {
 				try {
 					answers += rmCar.prepare(xid);
 				}
-				catch (RemoteException | InvalidTransactionException e) {
+				catch (CrashException | RemoteException | InvalidTransactionException e) {
 					// Nothing.
 				}
 			}
-		}
+		}		
 		
+		hashMap.remove(xid);
+		timeToLiveMap.remove(xid);
+		numberOfTransactions--;
+
+		// When it's time to implement logs, don't forget to NOT delete
+		// the log for the current transaction if ANY rm throws CrashException.
 		if (answers == v.size()) {
 			for(String rm: v) {
 				if (rm.equals("car")) {
 					try {
 						rmCar.commit(xid);
-					} catch (RemoteException e) {
+					} catch (CrashException | RemoteException e) {
 						e.printStackTrace();
 					}
 				}
@@ -124,12 +131,9 @@ public class TransactionManager {
 					}
 				}
 			}
+			
 		}
-		
-		hashMap.remove(xid);
-		timeToLiveMap.remove(xid);
-		
-		numberOfTransactions--;
+				
 		return v;		
 	}
 	
@@ -164,6 +168,11 @@ public class TransactionManager {
 		}
 		
 		return timedOut;
+	}
+
+
+	public void setCrashCondition(Crash crashCondition) {
+		this.crashCondition = crashCondition;
 	}
 }
 	

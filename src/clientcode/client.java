@@ -9,6 +9,7 @@ import java.io.*;
 
 import LockManager.DeadlockException;
 
+import servercode.ResImpl.Crash;
 import servercode.ResInterface.*;
 
 public class client
@@ -665,6 +666,42 @@ public class client
                     //e.printStackTrace();
                 }
             	break;
+            case 27: // Shutdown the system
+            	if (arguments.size() != 3) {
+            		obj.wrongNumber();
+            		break;
+            	}
+            	Crash crashCondition = Crash.valueOf((String)arguments.get(1));
+            	String rmName = (String)arguments.get(2);
+            	
+            	System.out.printf("Crashing %s with %s...%n", rmName, crashCondition.toString());
+            	try {
+            		rm.setCrashCondition(crashCondition, rmName);
+            	}
+            	catch(Exception e){                	
+            		System.out.println("EXCEPTION:");
+            		System.out.println(e.getMessage());
+            		//e.printStackTrace();
+            	}
+            	break;
+            	
+            case 28: // Shutdown the system
+            	if (arguments.size() != 2) {
+            		obj.wrongNumber();
+            		break;
+            	}
+            	rmName = (String)arguments.get(2);
+            	
+            	System.out.printf("Uncrashing %s...%n", rmName);
+            	try {
+            		rm.setCrashCondition(null, rmName);
+            	}
+            	catch(Exception e){                	
+            		System.out.println("EXCEPTION:");
+            		System.out.println(e.getMessage());
+            		//e.printStackTrace();
+            	}
+            	break;
 
             default:
                 System.out.println("The interface does not support this command.");
@@ -741,6 +778,10 @@ public class client
             return 25;
         else if (argument.compareToIgnoreCase("shutdown")==0)
             return 26;
+        else if (argument.compareToIgnoreCase("crash")==0)
+            return 27;     
+        else if (argument.compareToIgnoreCase("uncrash")==0)
+            return 28;
         else
             return 666;
 
