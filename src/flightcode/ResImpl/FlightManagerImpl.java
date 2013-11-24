@@ -1,24 +1,30 @@
 package flightcode.ResImpl;
 
 
-import hotelcode.ResImpl.Hotel;
-
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.File;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.Vector;
+import java.util.Set;
 
-import carcode.ResImpl.Car;
-
-import servercode.ResInterface.*;
-import servercode.ResImpl.*;
-import LockManager.*;
+import servercode.ResImpl.CommandDelete;
+import servercode.ResImpl.CommandPut;
+import servercode.ResImpl.Crash;
+import servercode.ResImpl.InvalidTransactionException;
+import servercode.ResImpl.MasterRecord;
+import servercode.ResImpl.RMHashtable;
+import servercode.ResImpl.ReservableItem;
+import servercode.ResImpl.ReservedItem;
+import servercode.ResImpl.SerializeUtils;
+import servercode.ResImpl.Trace;
+import servercode.ResImpl.WorkingSet;
+import servercode.ResInterface.ItemManager;
+import servercode.ResInterface.ResourceManager;
+import LockManager.DeadlockException;
+import LockManager.LockManager;
+import LockManager.LockType;
 
 public class FlightManagerImpl implements ItemManager {
     
@@ -28,18 +34,42 @@ public class FlightManagerImpl implements ItemManager {
     private LockManager lm = new LockManager();
     private WorkingSet<Flight> ws = new WorkingSet<Flight>();
     private Crash crashCondition;
-    
+	private static ResourceManager middleware = null;
+	private MasterRecord masterRecord = new MasterRecord();
+
+	
     public static void main(String args[]) {
     	
         int port = 5007;
         FlightManagerImpl obj = new FlightManagerImpl();
-
-        if (args.length != 1) {            
-            System.err.println("Usage: java flightcode.ResImpl.FlightManagerImpl <rmi port>");
-            System.exit(1);
-        }
-        else {
+        String middlewareHost;
+        int middlewarePort;
+        
+        if (args.length == 1) {
             port = Integer.parseInt(args[0]);
+        }
+        else if (args.length == 3) {
+        	port = Integer.parseInt(args[0]);
+        	middlewareHost = args[1];
+        	middlewarePort = Integer.parseInt(args[2]);
+            try {
+                Registry registry = LocateRegistry.getRegistry(middlewareHost, middlewarePort);
+                middleware = (ResourceManager) registry.lookup("Group5_ResourceManager");
+                if (middleware != null) {
+                    System.out.println("Successfully connected to the middleware");
+                }
+                else {
+                    System.out.println("Connection to the middleware failed");
+                    System.exit(1);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else {            
+        	System.err.println("Usage: java flightcode.ResImpl.FlightManagerImpl <rmi port> [<middleware host> <middleware port>]");
+        	System.exit(1);
         }
 
         try 
@@ -64,6 +94,14 @@ public class FlightManagerImpl implements ItemManager {
         if (System.getSecurityManager() == null) {
             System.setSecurityManager(new RMISecurityManager());
         }
+    }
+    
+    public FlightManagerImpl() {
+    	File mrFile = new File(getMasterRecordFileName());
+    	if (mrFile.exists()) {
+    		masterRecord = (MasterRecord) SerializeUtils.loadFromDisk(getMasterRecordFileName());
+    		flightTable = (RMHashtable) SerializeUtils.loadFromDisk(getCommittedFileName());
+    	}
     }
     
     @Override
@@ -331,14 +369,24 @@ public class FlightManagerImpl implements ItemManager {
     }
 
 	@Override
-	public boolean commit(int id) throws RemoteException {
-		ws.commit(id);		
+	synchronized public boolean commit(int id) throws RemoteException {
+		if (crashCondition == Crash.P_A_COMMITRECV) System.exit(43);
+		
+		ws.commit(id, this);
+		
+		SerializeUtils.saveToDisk(flightTable, getWorkingFileName());
+		masterRecord.setLastXid(id);
+		masterRecord.swap();
+		SerializeUtils.saveToDisk(masterRecord, getMasterRecordFileName());
+		SerializeUtils.deleteFile("/tmp/Group5/flight_" + id + ".ws");
+		
 		return lm.UnlockAll(id);
 	}
 
 	@Override
 	public void abort(int id) throws RemoteException {
 		ws.abort(id);
+		SerializeUtils.deleteFile("/tmp/Group5/flight_" + id + ".ws");
 		lm.UnlockAll(id);
 	}
 	
@@ -364,15 +412,56 @@ public class FlightManagerImpl implements ItemManager {
 	}
 
 	@Override
-	public int prepare(int xid) throws RemoteException,
-			InvalidTransactionException {
-		// TODO Auto-generated method stub
-		return 0;
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
+		if (crashCondition == Crash.P_B_SAVEWS) System.exit(42);
+		
+		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
+		
+		if (crashCondition == Crash.P_A_SAVEWS) System.exit(42);
+		
+		return 1;
+	}
+
+	private String getCommittedFileName() {
+		return "/tmp/Group5/flightdb." + masterRecord.getCommittedIndex();
+	}
+
+	private String getWorkingFileName() {
+		return "/tmp/Group5/flightdb." + masterRecord.getWorkingIndex();
+	}
+	
+	private String getMasterRecordFileName() {
+		return "/tmp/Group5/flightdb.mr";
+	}
+
+	private String getWorkingSetFileName(int xid) {
+		return "/tmp/Group5/flight_" + xid + ".ws";
 	}
 
 	@Override
 	public void setCrashCondition(Crash crashCondition) throws RemoteException {
 		this.crashCondition = crashCondition;
 	}
-
+	
+	private void recoverTransactionStatus() throws InvalidTransactionException {
+		File folder = new File("/tmp/Group5");
+		for (File f: folder.listFiles()) {
+			if (f.getName().startsWith("flight") && f.getName().endsWith(".ws")) {
+				try {
+					ws = (WorkingSet<Flight>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
+					Set<Integer> xids = ws.getAllTransactions();
+					for (int xid: xids) {
+						if (middleware.getTransactionStatus(xid)) {
+							middleware.commit(xid);
+						}
+						else {
+							middleware.abort(xid);
+						}
+					}
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 }
