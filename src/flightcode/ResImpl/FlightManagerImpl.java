@@ -370,10 +370,4 @@ public class FlightManagerImpl implements ItemManager {
 	}
 
 
-	@Override
-	public void setCrashCondition(Crash crashCondition) throws RemoteException {
-		// TODO Auto-generated method stub
-		
-	}
-
 }

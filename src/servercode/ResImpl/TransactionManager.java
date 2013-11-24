@@ -98,7 +98,7 @@ public class TransactionManager {
 				try {
 					answers += rmCar.prepare(xid);
 				}
-				catch (CrashException | RemoteException | InvalidTransactionException e) {
+				catch (RemoteException | InvalidTransactionException e) {
 					// Nothing.
 				}
 			}
@@ -115,7 +115,7 @@ public class TransactionManager {
 				if (rm.equals("car")) {
 					try {
 						rmCar.commit(xid);
-					} catch (CrashException | RemoteException e) {
+					} catch (RemoteException e) {
 						e.printStackTrace();
 					}
 				}

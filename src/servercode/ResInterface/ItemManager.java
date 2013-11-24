@@ -110,14 +110,12 @@ public interface ItemManager extends Remote, Serializable {
      * @return true if commit is successful, false otherwise
      * @throws RemoteException
      */
-    public boolean commit(int id) throws RemoteException, CrashException;
+    public boolean commit(int id) throws RemoteException;
     
     public void abort(int id) throws RemoteException;
     
     public void shutDown() throws RemoteException;
     
-    public int prepare(int xid) throws RemoteException, InvalidTransactionException, CrashException;
-    
-	public void setCrashCondition(Crash crashCondition) throws RemoteException;
+    public int prepare(int xid) throws RemoteException, InvalidTransactionException;    
     
 }

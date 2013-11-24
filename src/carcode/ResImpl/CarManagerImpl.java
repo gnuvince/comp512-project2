@@ -20,6 +20,7 @@ import servercode.ResImpl.SerializeUtils;
 import servercode.ResImpl.Trace;
 import servercode.ResImpl.WorkingSet;
 import servercode.ResInterface.ItemManager;
+import servercode.ResInterface.ResourceManager;
 import LockManager.DeadlockException;
 import LockManager.LockManager;
 import LockManager.LockType;
@@ -40,13 +41,35 @@ public class CarManagerImpl implements ItemManager {
         int port = 5006;
         
         CarManagerImpl obj = new CarManagerImpl();
+        ResourceManager middleware = null;
+        String middlewareHost;
+        int middlewarePort;
 
-        if (args.length != 1) {            
-            System.err.println("Usage: java carcode.ResImpl.CarManagerImpl <rmi port>");
-            System.exit(1);
-        }
-        else {
+        if (args.length == 1) {
             port = Integer.parseInt(args[0]);
+        }
+        else if (args.length == 3) {
+        	port = Integer.parseInt(args[0]);
+        	middlewareHost = args[1];
+        	middlewarePort = Integer.parseInt(args[2]);
+            try {
+                Registry registry = LocateRegistry.getRegistry(middlewareHost, middlewarePort);
+                middleware = (ResourceManager) registry.lookup("Group5_ResourceManager");
+                if (middleware != null) {
+                    System.out.println("Successfully connected to the middleware");
+                }
+                else {
+                    System.out.println("Connection to the middleware failed");
+                    System.exit(1);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else {            
+        	System.err.println("Usage: java carcode.ResImpl.CarManagerImpl <rmi port> <middleware host> <middleware port>");
+        	System.exit(1);
         }
         
         try 
@@ -58,6 +81,9 @@ public class CarManagerImpl implements ItemManager {
             // Bind the remote object's stub in the registry
             registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_CarManager", rm);
+            
+            if (middleware != null)
+                middleware.rebind("car");
             
             System.err.println("Car Server ready");
         } 
@@ -340,8 +366,7 @@ public class CarManagerImpl implements ItemManager {
     }
 
 	@Override
-	synchronized public boolean commit(int id) throws RemoteException, CrashException {
-		if (crashCondition == Crash.P_A_COMMITRECV) { throw new CrashException(); }		
+	synchronized public boolean commit(int id) throws RemoteException {
 		ws.commit(id);
 		
 		SerializeUtils.saveToDisk(carTable, getWorkingFileName());
@@ -380,8 +405,7 @@ public class CarManagerImpl implements ItemManager {
 	
 
 	@Override
-	public int prepare(int xid) throws RemoteException, InvalidTransactionException, CrashException {
-		if (crashCondition == Crash.P_A_PREPARE) { throw new CrashException(); }
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
 		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));			
 		return 1;
 	}
@@ -400,11 +424,6 @@ public class CarManagerImpl implements ItemManager {
 
 	private String getWorkingSetFileName(int xid) {
 		return "/tmp/Group5/car_" + xid + ".ws";
-	}
-
-	@Override
-	public void setCrashCondition(Crash crashCondition) {
-		this.crashCondition = crashCondition;
 	}
 
 }

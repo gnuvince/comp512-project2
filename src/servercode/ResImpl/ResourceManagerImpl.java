@@ -30,17 +30,16 @@ public class ResourceManagerImpl implements ResourceManager {
     protected ItemManager rmFlight = null;
     protected TransactionManager txnManager;
     
+	private static int rmiPort = 5005;     
+	
+    private static String carServer = "localhost";
+    private static String flightServer = "localhost";
+    private static String hotelServer = "localhost";
+    private static int carPort = 5006;
+    private static int flightPort = 5007;
+    private static int hotelPort = 5008;
 
     public static void main(String args[]) {
-        
-    	int rmiPort = 5005;        
-        String carServer = "localhost";
-        String flightServer = "localhost";
-        String hotelServer = "localhost";
-        int carPort = 5006;
-        int flightPort = 5007;
-        int hotelPort = 5008;
-
         if (args.length == 7) {
             rmiPort = Integer.parseInt(args[0]);
             carServer = args[1];
@@ -81,7 +80,68 @@ public class ResourceManagerImpl implements ResourceManager {
 
     public ResourceManagerImpl(String carServer, int carPort, String flightServer, int flightPort, String hotelServer, int hotelPort) throws RemoteException {
     	
-        try {
+        bindHotelManager(hotelServer, hotelPort);
+        bindCarManager(carServer, carPort);
+        bindFlightManager(flightServer, flightPort);
+        
+        txnManager = TransactionManager.getInstance(rmCar, rmFlight, rmHotel, this);
+        txnKillerThread = new Thread(new TransactionKiller(txnManager, this));
+        txnKillerThread.start();
+        
+    }
+    
+    public void rebind(String rm) throws RemoteException {
+    	if (rm.equals("car")) {
+    		System.out.println(rmCar);
+    		bindCarManager(carServer, carPort);
+    		System.out.println(rmCar);
+    	}
+    	else if (rm.equals("flight")) 
+    		bindCarManager(flightServer, flightPort);
+    	else if (rm.equals("hotel")) 
+    		bindCarManager(hotelServer, hotelPort);
+    	
+    }
+
+	private void bindFlightManager(String flightServer, int flightPort) {
+		try {
+            Registry registry = LocateRegistry.getRegistry(flightServer,
+                flightPort);
+            rmFlight = (ItemManager) registry.lookup("Group5_FlightManager");
+            if (rmFlight != null) {
+                System.out.println("Successfully connected to the Flight Manager");
+            }
+            else {
+                System.out.println("Connection to the Flight Manager failed");
+            }
+        }
+        catch (Exception e) {
+            System.err.println("Flight exception: " + e.toString());
+            e.printStackTrace();
+        }
+	}
+
+	private void bindCarManager(String carServer, int carPort) {
+		rmCar = null;
+		
+		try {
+            Registry registry = LocateRegistry.getRegistry(carServer, carPort);
+            rmCar = (ItemManager) registry.lookup("Group5_CarManager");
+            if (rmCar != null) {
+                System.out.println("Successfully connected to the Car Manager");
+            }
+            else {
+                System.out.println("Connection to the Car Manager failed");
+            }
+        }
+        catch (Exception e) {
+            System.err.println("Car exception: " + e.toString());
+            e.printStackTrace();
+        }
+	}
+
+	private void bindHotelManager(String hotelServer, int hotelPort) {
+		try {
             // get a reference to the rmiregistry on Hotel's server
             Registry registry = LocateRegistry.getRegistry(hotelServer, hotelPort);
             // get the proxy and the remote reference by rmiregistry lookup
@@ -97,43 +157,7 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Hotel exception: " + e.toString());
             e.printStackTrace();
         }
-
-        try {
-            Registry registry = LocateRegistry.getRegistry(carServer, carPort);
-            rmCar = (ItemManager) registry.lookup("Group5_CarManager");
-            if (rmCar != null) {
-                System.out.println("Successfully connected to the Car Manager");
-            }
-            else {
-                System.out.println("Connection to the Car Manager failed");
-            }
-        }
-        catch (Exception e) {
-            System.err.println("Car exception: " + e.toString());
-            e.printStackTrace();
-        }
-
-        try {
-            Registry registry = LocateRegistry.getRegistry(flightServer,
-                flightPort);
-            rmFlight = (ItemManager) registry.lookup("Group5_FlightManager");
-            if (rmFlight != null) {
-                System.out.println("Successfully connected to the Flight Manager");
-            }
-            else {
-                System.out.println("Connection to the Flight Manager failed");
-            }
-        }
-        catch (Exception e) {
-            System.err.println("Flight exception: " + e.toString());
-            e.printStackTrace();
-        }
-        
-        txnManager = TransactionManager.getInstance(rmCar, rmFlight, rmHotel, this);
-        txnKillerThread = new Thread(new TransactionKiller(txnManager, this));
-        txnKillerThread.start();
-        
-    }
+	}
 
     // Reads a data item
     private RMItem readData(int id, String key) {
@@ -974,14 +998,14 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	@Override
 	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException {
-		if (rmName.equals("tm"))
+		/*if (rmName.equals("tm"))
 			txnManager.setCrashCondition(crashCondition);
 		else if (rmName.equals("car"))
 			rmCar.setCrashCondition(crashCondition);
 		else if (rmName.equals("flight"))
 			rmFlight.setCrashCondition(crashCondition);
 		else if (rmName.equals("hotel"))
-			rmHotel.setCrashCondition(crashCondition);
+			rmHotel.setCrashCondition(crashCondition);*/
 	}	
 	
 

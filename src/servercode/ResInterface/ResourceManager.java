@@ -134,5 +134,7 @@ public interface ResourceManager extends Remote {
     public boolean shutdown() throws RemoteException;
 
 	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException;
+	
+	public void rebind(String rm) throws RemoteException;
 
 }

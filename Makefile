@@ -54,6 +54,10 @@ runcar: compile
 	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8003,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT)
 	# NON-Debug
 	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT)
+	
+recovercar: 
+	# Debug 
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8003,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar carcode.ResImpl.CarManagerImpl $(CARPORT) $(SERVERHOST) $(SERVERPORT)
 
 runflight:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(FLIGHTPORT) &
