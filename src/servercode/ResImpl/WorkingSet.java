@@ -2,8 +2,11 @@ package servercode.ResImpl;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
+
+import servercode.ResInterface.ItemManager;
 
 public class WorkingSet<StateType> implements Serializable {
 	
@@ -31,18 +34,23 @@ public class WorkingSet<StateType> implements Serializable {
 		if (items == null){
 			items = new Vector<String>();
 		}
-		
 		items.add(item);
 		
 		idToLocationsMap.put(id, items);		
 	}
 	
 	public synchronized void commit(int id){
+		this.commit(id, null);
+	}
+	
+	public synchronized void commit(int id, ItemManager im){
 		Vector<Command> commands = idToCommandsMap.get(id);
-		
 		if (commands != null){
 			for (Command c: commands) {
-				c.execute();
+				if (im == null)
+					c.execute();
+				else
+					c.execute(im);
 			}		
 		}
 		
@@ -87,5 +95,9 @@ public class WorkingSet<StateType> implements Serializable {
 
 	public synchronized void deleteItem(String item){
 		currentStatesMap.put(item, null);
+	}
+	
+	public Set<Integer> getAllTransactions() {
+		return idToCommandsMap.keySet();
 	}
 }

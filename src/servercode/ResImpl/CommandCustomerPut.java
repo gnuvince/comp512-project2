@@ -1,5 +1,7 @@
 package servercode.ResImpl;
 
+import servercode.ResInterface.ItemManager;
+
 public class CommandCustomerPut extends Command {
 
 	private ResourceManagerImpl resourceManager;
@@ -17,5 +19,9 @@ public class CommandCustomerPut extends Command {
 	@Override
 	public void execute() {
 		resourceManager.writeData(id, itemId, newCust);		
+	}
+	
+	public void execute(ItemManager im) {
+		
 	}
 }

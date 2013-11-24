@@ -24,6 +24,7 @@ public class HotelManagerImpl implements ItemManager {
         
     private LockManager lm = new LockManager();
     private WorkingSet<Hotel> ws = new WorkingSet<Hotel>();
+    private Crash crashCondition;
     
     public static void main(String args[]) {
     	
@@ -348,6 +349,11 @@ public class HotelManagerImpl implements ItemManager {
 			InvalidTransactionException {
 		// TODO Auto-generated method stub
 		return 0;
+	}
+	
+	@Override
+	public void setCrashCondition(Crash crashCondition) throws RemoteException {
+		this.crashCondition = crashCondition;
 	}
 
 }

@@ -666,7 +666,7 @@ public class client
                     //e.printStackTrace();
                 }
             	break;
-            case 27: // Shutdown the system
+            case 27: // Insert crash condition
             	if (arguments.size() != 3) {
             		obj.wrongNumber();
             		break;
@@ -685,7 +685,7 @@ public class client
             	}
             	break;
             	
-            case 28: // Shutdown the system
+            case 28: // Remove crash condition
             	if (arguments.size() != 2) {
             		obj.wrongNumber();
             		break;

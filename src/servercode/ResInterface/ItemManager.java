@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
+
 //import flightcode.ResImpl.Flight;
 import LockManager.DeadlockException;
 import servercode.ResImpl.Crash;
@@ -118,4 +119,5 @@ public interface ItemManager extends Remote, Serializable {
     
     public int prepare(int xid) throws RemoteException, InvalidTransactionException;    
     
+    public void setCrashCondition(Crash crashCondition) throws RemoteException;
 }

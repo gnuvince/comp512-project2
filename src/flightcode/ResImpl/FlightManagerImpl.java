@@ -27,6 +27,7 @@ public class FlightManagerImpl implements ItemManager {
     
     private LockManager lm = new LockManager();
     private WorkingSet<Flight> ws = new WorkingSet<Flight>();
+    private Crash crashCondition;
     
     public static void main(String args[]) {
     	
@@ -369,5 +370,9 @@ public class FlightManagerImpl implements ItemManager {
 		return 0;
 	}
 
+	@Override
+	public void setCrashCondition(Crash crashCondition) throws RemoteException {
+		this.crashCondition = crashCondition;
+	}
 
 }

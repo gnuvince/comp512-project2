@@ -3,8 +3,9 @@ package servercode.ResImpl;
 
 public enum Crash {
 	
-	P_A_PREPARE,       // Same as crash before prepare()
-	P_A_COMMITRECV,    // Same as crash after send YES
+	P_B_SAVEWS,
+	P_A_SAVEWS,
+	P_A_COMMITRECV,
 	C_B_2PC,
 	C_A_PREPAREREQUEST,
 	C_A_ALLYES,

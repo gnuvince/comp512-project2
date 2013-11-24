@@ -6,6 +6,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Set;
 
 import servercode.ResImpl.CommandDelete;
 import servercode.ResImpl.CommandPut;
@@ -31,6 +32,7 @@ public class CarManagerImpl implements ItemManager {
 	protected RMHashtable carTable = new RMHashtable();
 	private LockManager lm = new LockManager();
 	private WorkingSet<Car> ws = new WorkingSet<Car>();
+	private static ResourceManager middleware = null;
 	
 	private MasterRecord masterRecord = new MasterRecord();
 	private Crash crashCondition;
@@ -40,8 +42,7 @@ public class CarManagerImpl implements ItemManager {
     	
         int port = 5006;
         
-        CarManagerImpl obj = new CarManagerImpl();
-        ResourceManager middleware = null;
+        CarManagerImpl obj = new CarManagerImpl();        
         String middlewareHost;
         int middlewarePort;
 
@@ -82,9 +83,10 @@ public class CarManagerImpl implements ItemManager {
             registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_CarManager", rm);
             
-            if (middleware != null)
+            if (middleware != null){
                 middleware.rebind("car");
-            
+            	obj.recoverTransactionStatus();
+            }
             System.err.println("Car Server ready");
         } 
         catch (Exception e) 
@@ -367,7 +369,9 @@ public class CarManagerImpl implements ItemManager {
 
 	@Override
 	synchronized public boolean commit(int id) throws RemoteException {
-		ws.commit(id);
+		if (crashCondition == Crash.P_A_COMMITRECV) System.exit(43);
+		
+		ws.commit(id, this);
 		
 		SerializeUtils.saveToDisk(carTable, getWorkingFileName());
 		masterRecord.setLastXid(id);
@@ -406,7 +410,12 @@ public class CarManagerImpl implements ItemManager {
 
 	@Override
 	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
-		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));			
+		if (crashCondition == Crash.P_B_SAVEWS) System.exit(42);
+		
+		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
+		
+		if (crashCondition == Crash.P_A_SAVEWS) System.exit(42);
+		
 		return 1;
 	}
 
@@ -424,6 +433,37 @@ public class CarManagerImpl implements ItemManager {
 
 	private String getWorkingSetFileName(int xid) {
 		return "/tmp/Group5/car_" + xid + ".ws";
+	}
+
+	@Override
+	public void setCrashCondition(Crash crashCondition) throws RemoteException {
+		this.crashCondition = crashCondition;
+	}
+	
+	private void recoverTransactionStatus() throws InvalidTransactionException {
+		File folder = new File("/tmp/Group5");
+		for (File f: folder.listFiles()) {
+			if (f.getName().startsWith("car") && f.getName().endsWith(".ws")) {
+				/*int start = f.getName().indexOf('_');
+				int end = f.getName().indexOf('.');
+				int xid = Integer.parseInt(f.getName().substring(start + 1, end));*/
+				
+				try {
+					ws = (WorkingSet<Car>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
+					Set<Integer> xids = ws.getAllTransactions();
+					for (int xid: xids) {
+						if (middleware.getTransactionStatus(xid)) {
+							middleware.commit(xid);
+						}
+						else {
+							middleware.abort(xid);
+						}
+					}
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 }

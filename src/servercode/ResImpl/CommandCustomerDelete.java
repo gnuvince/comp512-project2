@@ -1,5 +1,7 @@
 package servercode.ResImpl;
 
+import servercode.ResInterface.ItemManager;
+
 public class CommandCustomerDelete extends Command {
 
 	private ResourceManagerImpl resourceManager;
@@ -15,5 +17,9 @@ public class CommandCustomerDelete extends Command {
 	@Override
 	public void execute() {
 		resourceManager.removeData(id, itemId);		
+	}
+	
+	public void execute(ItemManager im) {
+		
 	}
 }

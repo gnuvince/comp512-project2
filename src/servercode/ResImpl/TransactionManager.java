@@ -1,6 +1,8 @@
 package servercode.ResImpl;
 
+import java.rmi.ConnectException;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,8 +21,9 @@ public class TransactionManager {
 	
 	//Same as hashMap but thread safe
 	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
-	private ConcurrentHashMap<Integer, Vector<String>> hashMap = new ConcurrentHashMap<Integer, Vector<String>>();	
+	private ConcurrentHashMap<Integer, Vector<String>> xidsToRMNames = new ConcurrentHashMap<Integer, Vector<String>>();	
 	private ConcurrentHashMap<Integer,	Long> timeToLiveMap = new ConcurrentHashMap<Integer, Long>(); 
+	private HashMap<Integer, Boolean> transactionStatus = new HashMap<Integer, Boolean>();
 	private int numberOfTransactions = 0;	
 	private static TransactionManager instance = null;
 	
@@ -52,10 +55,10 @@ public class TransactionManager {
 		numberOfTransactions++;
 		
 		//Generate random numbers until we get one that is not already used
-		while (hashMap.contains(id) || id == 1) {
+		while (xidsToRMNames.contains(id) || id == 1) {
 			id = new Random().nextInt(10000) + 1; //+1 because can return 0
 		}
-		hashMap.put(id, new Vector<String>());
+		xidsToRMNames.put(id, new Vector<String>());
 		
 		timeToLiveMap.put(id, System.currentTimeMillis());
 		
@@ -64,83 +67,79 @@ public class TransactionManager {
 	 
 	//Adds a RM as used by transaction
 	public void enlist(int id, String rm) {
-		Vector<String> v = hashMap.get(id);
+		Vector<String> v = xidsToRMNames.get(id);
 		
 		if (!v.contains(rm)) {
 			v.add(rm);
 		}
 		
-		hashMap.put(id, v);	
+		xidsToRMNames.put(id, v);	
 		timeToLiveMap.put(id, System.currentTimeMillis());
 	}
 	
-	public Vector<String> commit(int xid) {
-		Vector<String> v = hashMap.get(xid);
-		
-		/*
-		 * for each rm in v:
-		 *   Thread.run {
-		 *     rm.prepare(xid)
-		 *     wait for response
-		 *   }
-		 * if all YES:
-		 *   commit
-		 *   send commit to v
-		 * else:
-		 *   abort
-		 *   send abort to v 
-		 */
+	public boolean commit(int xid) {
+		Vector<String> rms = xidsToRMNames.get(xid);
 		
 		int answers = 0;
 		
-		for (String rm: v) {
+		for (String rm: rms) {
 			if (rm.equals("car")) {
 				try {
 					answers += rmCar.prepare(xid);
 				}
 				catch (RemoteException | InvalidTransactionException e) {
-					// Nothing.
+					
 				}
 			}
 		}		
-		
-		hashMap.remove(xid);
-		timeToLiveMap.remove(xid);
-		numberOfTransactions--;
 
 		// When it's time to implement logs, don't forget to NOT delete
 		// the log for the current transaction if ANY rm throws CrashException.
-		if (answers == v.size()) {
-			for(String rm: v) {
+		boolean result = answers == rms.size();
+		transactionStatus.put(xid, result);
+		if (result) {
+			for(String rm: rms) {
 				if (rm.equals("car")) {
 					try {
 						rmCar.commit(xid);
+						disassociate(xid, "car");
 					} catch (RemoteException e) {
-						e.printStackTrace();
+						System.out.println("The car manager could not commit!!!");
 					}
 				}
 			}
 		}
 		else {
-			for(String rm: v) {
+			for(String rm: rms) {
 				if (rm.equals("car")) { 
 					try {
-						rmCar.abort(xid);
+						rmCar.abort(xid);		
+						disassociate(xid, "car");
 					} catch (RemoteException e) {
-						e.printStackTrace();
+						System.out.println("The car manager is not available!!!");
 					}
 				}
-			}
-			
+			}			
 		}
 				
-		return v;		
+		timeToLiveMap.remove(xid);
+		
+		return result;		
+	}
+	
+	private void disassociate(int xid, String rmname) {
+		Vector<String> rms = xidsToRMNames.get(xid);
+		rms.remove(rmname);
+		if (rms.isEmpty()) {
+			xidsToRMNames.remove(xid);
+			numberOfTransactions--;
+		}
 	}
 	
 	// For now, there isn't much difference between commit and abort !!??
 	public Vector<String> abort(int id) {
-		Vector<String> v = hashMap.get(id);		
-		hashMap.remove(id);
+		Vector<String> v = xidsToRMNames.get(id);		
+		xidsToRMNames.remove(id);
 		timeToLiveMap.remove(id);
 		
 		numberOfTransactions--;
@@ -148,7 +147,7 @@ public class TransactionManager {
 	}
 	
 	public boolean isValidTransaction(int id) {
-		return hashMap.get(id) != null ? true: false;		
+		return xidsToRMNames.get(id) != null ? true: false;		
 	}
 	
 	public boolean canShutdown(){
@@ -170,9 +169,15 @@ public class TransactionManager {
 		return timedOut;
 	}
 
-
 	public void setCrashCondition(Crash crashCondition) {
 		this.crashCondition = crashCondition;
+	}
+	
+	public boolean getTransactionStatus(int xid) {
+		Boolean res = transactionStatus.get(xid);
+		if (res == null)
+			return false;
+		return res;
 	}
 }
 	

@@ -194,7 +194,7 @@ public class ResourceManagerImpl implements ResourceManager {
     // NOTE: if flightPrice <= 0 and the flight already exists, it maintains its
     // current price
     public boolean addFlight(int id, int flightNum, int flightSeats,
-        int flightPrice) throws RemoteException, InvalidTransactionException {
+        int flightPrice) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	//Sleep to test concurrency. Je voulais voir qu'est-ce qui se passe lorsque le middleware sleeps pis que 
     	//j'envoie un autre request à partir d'un autre client. Réponse: Ça ne bloque pas
@@ -221,7 +221,7 @@ public class ResourceManagerImpl implements ResourceManager {
         return true;
     }
 
-    public boolean deleteFlight(int id, int flightNum) throws RemoteException, InvalidTransactionException {
+    public boolean deleteFlight(int id, int flightNum) throws RemoteException, InvalidTransactionException, ConnectException {
 
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -244,7 +244,7 @@ public class ResourceManagerImpl implements ResourceManager {
     // NOTE: if price <= 0 and the room location already exists, it maintains
     // its current price
     public boolean addRooms(int id, String location, int count, int price)
-        throws RemoteException, InvalidTransactionException {
+        throws RemoteException, InvalidTransactionException, ConnectException {
         Trace.info("RM::addRooms(" + id + ", " + location + ", " + count + ", $" + price + ") called");
        
         if (!txnManager.isValidTransaction(id)) {
@@ -262,7 +262,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Delete rooms from a location
-    public boolean deleteRooms(int id, String location) throws RemoteException, InvalidTransactionException {
+    public boolean deleteRooms(int id, String location) throws RemoteException, InvalidTransactionException, ConnectException {
         Trace.info("RM::deleteRoom(" + id + ", " + location + ")");
 
         if (!txnManager.isValidTransaction(id)) {
@@ -286,7 +286,7 @@ public class ResourceManagerImpl implements ResourceManager {
     // NOTE: if price <= 0 and the location already exists, it maintains its
     // current price
     public boolean addCars(int id, String location, int count, int price)
-        throws RemoteException, InvalidTransactionException {
+        throws RemoteException, InvalidTransactionException, ConnectException {
         Trace.info("RM::addCars(" + id + ", " + location + ", " + count + ", $" + price + ") called");
 
         if (!txnManager.isValidTransaction(id)) {
@@ -305,7 +305,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Delete cars from a location
-    public boolean deleteCars(int id, String location) throws RemoteException, InvalidTransactionException {
+    public boolean deleteCars(int id, String location) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -325,7 +325,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Returns the number of empty seats on this flight
-    public int queryFlight(int id, int flightNum) throws RemoteException, InvalidTransactionException {
+    public int queryFlight(int id, int flightNum) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -343,7 +343,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Returns price of this flight
-    public int queryFlightPrice(int id, int flightNum) throws RemoteException, InvalidTransactionException {
+    public int queryFlightPrice(int id, int flightNum) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -361,7 +361,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Returns the number of rooms available at a location
-    public int queryRooms(int id, String location) throws RemoteException, InvalidTransactionException { 
+    public int queryRooms(int id, String location) throws RemoteException, InvalidTransactionException, ConnectException { 
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -378,7 +378,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Returns room price at this location
-    public int queryRoomsPrice(int id, String location) throws RemoteException, InvalidTransactionException {
+    public int queryRoomsPrice(int id, String location) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -395,7 +395,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Returns the number of cars available at a location
-    public int queryCars(int id, String location) throws RemoteException, InvalidTransactionException {
+    public int queryCars(int id, String location) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -413,7 +413,7 @@ public class ResourceManagerImpl implements ResourceManager {
     }
 
     // Returns price of cars at this location
-    public int queryCarsPrice(int id, String location) throws RemoteException, InvalidTransactionException {
+    public int queryCarsPrice(int id, String location) throws RemoteException, InvalidTransactionException, ConnectException {
     	
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -662,7 +662,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // Adds car reservation to this customer.
     public boolean reserveCar(int id, int customerID, String location)
-        throws RemoteException, InvalidTransactionException, DeadlockException {
+        throws RemoteException, InvalidTransactionException, DeadlockException, ConnectException {
 
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -716,7 +716,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // Adds room reservation to this customer.
     public boolean reserveRoom(int id, int customerID, String location)
-        throws RemoteException, InvalidTransactionException, DeadlockException {
+        throws RemoteException, InvalidTransactionException, DeadlockException, ConnectException {
 
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -768,7 +768,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
     // Adds flight reservation to this customer.
     public boolean reserveFlight(int id, int customerID, int flightNum)
-        throws RemoteException, InvalidTransactionException, DeadlockException {
+        throws RemoteException, InvalidTransactionException, DeadlockException, ConnectException {
 
     	if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -822,7 +822,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
     /* reserve an itinerary */
     public boolean itinerary(int id, int customer, Vector flightNumbers, String location, boolean car, boolean room) 
-    		throws RemoteException, InvalidTransactionException, TransactionAbortedException, DeadlockException {
+    		throws RemoteException, InvalidTransactionException, TransactionAbortedException, DeadlockException, ConnectException {
     	
     	//Unlike for the other operations, the transaction is aborted as soon as a component of the itinerary fails. 
     	
@@ -920,33 +920,18 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 
 	@Override
-	public boolean commit(int id) throws RemoteException, InvalidTransactionException {
+	public boolean commit(int id) throws RemoteException, InvalidTransactionException, ConnectException {
 		
 		if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
         }
 		
 		System.out.println("Committing transaction: " + id);
-		Vector<String> rms = txnManager.commit(id);
-				 
-//		for(String rm: rms) {
-//			if (rm.equals("car"))
-//				rmCar.commit(id);
-//			else if (rm.equals("flight"))
-//				rmFlight.commit(id);
-//			else if (rm.equals("hotel"))
-//				rmHotel.commit(id);	
-//			else if (rm.equals("customer")){			
-//				lm.UnlockAll(id);
-//				ws.commit(id);
-//			}
-//		}
-		
-		return true; //Commits always succeed since there is no failures yet
+		return txnManager.commit(id);
 	}
 
 	@Override
-	public void abort(int id) throws RemoteException, InvalidTransactionException {
+	public void abort(int id) throws RemoteException, InvalidTransactionException, ConnectException {
 		
 		if (!txnManager.isValidTransaction(id)) {
         	throw new InvalidTransactionException(id);
@@ -970,7 +955,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 
 	@Override
-	public boolean shutdown() throws RemoteException {
+	public boolean shutdown() throws RemoteException, ConnectException {
 		
 		if (txnManager.canShutdown()) {
 			
@@ -998,14 +983,19 @@ public class ResourceManagerImpl implements ResourceManager {
 
 	@Override
 	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException {
-		/*if (rmName.equals("tm"))
+		if (rmName.equals("tm"))
 			txnManager.setCrashCondition(crashCondition);
 		else if (rmName.equals("car"))
 			rmCar.setCrashCondition(crashCondition);
 		else if (rmName.equals("flight"))
 			rmFlight.setCrashCondition(crashCondition);
 		else if (rmName.equals("hotel"))
-			rmHotel.setCrashCondition(crashCondition);*/
+			rmHotel.setCrashCondition(crashCondition);
+	}
+
+	@Override
+	public boolean getTransactionStatus(int xid) throws RemoteException {
+		return txnManager.getTransactionStatus(xid);
 	}	
 	
 

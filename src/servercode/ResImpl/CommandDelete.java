@@ -18,18 +18,22 @@ public class CommandDelete extends Command {
 		this.itemId = itemId;		
 	}
 	
-	public void execute(){
+	public void execute() {
+		this.execute(this.itemManager);	
+	}
+	
+	public void execute(ItemManager im){
 		
-		if (itemManager instanceof CarManagerImpl){
-			((CarManagerImpl) itemManager).deleteCar(id, itemId);			
+		if (im instanceof CarManagerImpl){
+			((CarManagerImpl) im).deleteCar(id, itemId);			
 		}
 		
-		if (itemManager instanceof HotelManagerImpl){
-			((HotelManagerImpl) itemManager).deleteHotel(id, itemId);			
+		if (im instanceof HotelManagerImpl){
+			((HotelManagerImpl) im).deleteHotel(id, itemId);			
 		}
 		
-		if (itemManager instanceof FlightManagerImpl){
-			((FlightManagerImpl) itemManager).deleteFlight(id, itemId);			
+		if (im instanceof FlightManagerImpl){
+			((FlightManagerImpl) im).deleteFlight(id, itemId);			
 		}
 			
 	}

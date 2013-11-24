@@ -23,21 +23,24 @@ public class CommandPut extends Command{
 		this.itemId = itemId;
 		this.newObj = newObj;	
 	}
+
+	public void execute() {
+		this.execute(this.itemManager);	
+	}
 	
-	public void execute(){
+	public void execute(ItemManager im) {
 		
-		if (itemManager instanceof CarManagerImpl){
-			((CarManagerImpl) itemManager).putCar(id, itemId, (Car)newObj);
+		if (im instanceof CarManagerImpl){
+			((CarManagerImpl) im).putCar(id, itemId, (Car)newObj);
 		}
 		
-		if (itemManager instanceof HotelManagerImpl){
-			((HotelManagerImpl) itemManager).putHotel(id, itemId, (Hotel)newObj);
+		if (im instanceof HotelManagerImpl){
+			((HotelManagerImpl) im).putHotel(id, itemId, (Hotel)newObj);
 		}
 		
-		if (itemManager instanceof FlightManagerImpl){
-			((FlightManagerImpl) itemManager).putFlight(id, itemId, (Flight)newObj);
+		if (im instanceof FlightManagerImpl){
+			((FlightManagerImpl) im).putFlight(id, itemId, (Flight)newObj);
 		}
-					
 	}
 	
 
