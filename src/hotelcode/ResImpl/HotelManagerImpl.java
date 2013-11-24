@@ -1,44 +1,64 @@
 package hotelcode.ResImpl;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.File;
 import java.rmi.RMISecurityManager;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.Set;
 
-import carcode.ResImpl.Car;
 import servercode.ResInterface.*;
 import servercode.ResImpl.*;
 import LockManager.*;
+import servercode.ResImpl.SerializeUtils;
 
 public class HotelManagerImpl implements ItemManager {
     
 	public static Registry registry;
     protected RMHashtable roomsTable = new RMHashtable();
+    private static ResourceManager middleware = null;
         
     private LockManager lm = new LockManager();
     private WorkingSet<Hotel> ws = new WorkingSet<Hotel>();
     private Crash crashCondition;
+    private MasterRecord masterRecord = new MasterRecord();
     
     public static void main(String args[]) {
     	
         int port = 5008;
         HotelManagerImpl obj = new HotelManagerImpl();
+        
+        String middlewareHost;
+        int middlewarePort;
 
-        if (args.length != 1) {            
-            System.err.println("Usage: java hotelcode.ResImpl.HotelManagerImpl <rmi port>");
-            System.exit(1);
-        }
-        else {
+        if (args.length == 1) {
             port = Integer.parseInt(args[0]);
         }
-
+        else if (args.length == 3) {
+        	port = Integer.parseInt(args[0]);
+        	middlewareHost = args[1];
+        	middlewarePort = Integer.parseInt(args[2]);
+            try {
+                Registry registry = LocateRegistry.getRegistry(middlewareHost, middlewarePort);
+                middleware = (ResourceManager) registry.lookup("Group5_ResourceManager");
+                if (middleware != null) {
+                    System.out.println("Successfully connected to the middleware");
+                }
+                else {
+                    System.out.println("Connection to the middleware failed");
+                    System.exit(1);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        else {            
+        	System.err.println("Usage: java hotelcode.ResImpl.HotelManagerImpl <rmi port> <middleware host> <middleware port>");
+        	System.exit(1);
+        }
+       
         try 
         {
             // create a new Server object
@@ -48,7 +68,11 @@ public class HotelManagerImpl implements ItemManager {
             // Bind the remote object's stub in the registry
             registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_HotelManager", rm);
-
+            
+            if (middleware != null){
+                middleware.rebind("hotel");
+            	obj.recoverTransactionStatus();
+            }
             System.err.println("Hotel Server ready");
         } 
         catch (Exception e) 
@@ -61,6 +85,14 @@ public class HotelManagerImpl implements ItemManager {
         if (System.getSecurityManager() == null) {
             System.setSecurityManager(new RMISecurityManager());
         }
+    }
+    
+    public HotelManagerImpl() {
+    	File mrFile = new File(getMasterRecordFileName());
+    	if (mrFile.exists()) {
+    		masterRecord = (MasterRecord) SerializeUtils.loadFromDisk(getMasterRecordFileName());
+    		roomsTable = (RMHashtable) SerializeUtils.loadFromDisk(getCommittedFileName());
+    	}
     }
     
     @Override
@@ -321,13 +353,25 @@ public class HotelManagerImpl implements ItemManager {
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-		ws.commit(id);		
+		if (crashCondition == Crash.P_A_COMMITRECV) System.exit(43);
+		
+		ws.commit(id, this);
+		
+		SerializeUtils.saveToDisk(roomsTable, getWorkingFileName());
+		masterRecord.setLastXid(id);
+		masterRecord.swap();
+		SerializeUtils.saveToDisk(masterRecord, getMasterRecordFileName());
+		SerializeUtils.deleteFile("/tmp/Group5/hotel_" + id + ".ws");
+		
 		return lm.UnlockAll(id);
 	}
 
 	@Override
 	public void abort(int id) throws RemoteException {
 		ws.abort(id);
+		
+		SerializeUtils.deleteFile("/tmp/Group5/hotel_" + id + ".ws");
+		
 		lm.UnlockAll(id);
 	}
 	
@@ -345,15 +389,57 @@ public class HotelManagerImpl implements ItemManager {
 	}
 
 	@Override
-	public int prepare(int xid) throws RemoteException,
-			InvalidTransactionException {
-		// TODO Auto-generated method stub
-		return 0;
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
+		if (crashCondition == Crash.P_B_SAVEWS) System.exit(42);
+		
+		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
+		
+		if (crashCondition == Crash.P_A_SAVEWS) System.exit(42);
+		
+		return 1; 
+	}
+	
+	private String getCommittedFileName() {
+		return "/tmp/Group5/hoteldb." + masterRecord.getCommittedIndex();
+	}
+
+	private String getWorkingFileName() {
+		return "/tmp/Group5/hoteldb." + masterRecord.getWorkingIndex();
+	}
+	
+	private String getMasterRecordFileName() {
+		return "/tmp/Group5/hoteldb.mr";
+	}
+
+	private String getWorkingSetFileName(int xid) {
+		return "/tmp/Group5/hotel_" + xid + ".ws";
 	}
 	
 	@Override
 	public void setCrashCondition(Crash crashCondition) throws RemoteException {
 		this.crashCondition = crashCondition;
+	}
+	
+	private void recoverTransactionStatus() throws InvalidTransactionException {
+		File folder = new File("/tmp/Group5");
+		for (File f: folder.listFiles()) {
+			if (f.getName().startsWith("hotel") && f.getName().endsWith(".ws")) {
+				try {
+					ws = (WorkingSet<Hotel>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
+					Set<Integer> xids = ws.getAllTransactions();
+					for (int xid: xids) {
+						if (middleware.getTransactionStatus(xid)) {
+							middleware.commit(xid);
+						}
+						else {
+							middleware.abort(xid);
+						}
+					}
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 }

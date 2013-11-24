@@ -416,7 +416,7 @@ public class CarManagerImpl implements ItemManager {
 		
 		if (crashCondition == Crash.P_A_SAVEWS) System.exit(42);
 		
-		return 1;
+		return 1; 
 	}
 
 	private String getCommittedFileName() {
