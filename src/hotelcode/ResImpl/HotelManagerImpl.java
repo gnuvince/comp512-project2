@@ -429,7 +429,7 @@ public class HotelManagerImpl implements ItemManager {
 					Set<Integer> xids = ws.getAllTransactions();
 					for (int xid: xids) {
 						if (middleware.getTransactionStatus(xid)) {
-							middleware.commit(xid);
+							middleware.commitRecovery(xid, "hotel");
 						}
 						else {
 							middleware.abort(xid);

@@ -369,7 +369,7 @@ public class CarManagerImpl implements ItemManager {
 
 	@Override
 	synchronized public boolean commit(int id) throws RemoteException {
-		if (crashCondition == Crash.P_A_COMMITRECV) System.exit(43);
+		if (crashCondition == Crash.P_A_COMMITRECV) System.exit(42);
 		
 		ws.commit(id, this);
 		
@@ -403,7 +403,9 @@ public class CarManagerImpl implements ItemManager {
 
 	        System.out.println("Shutting Down!!! Have a good night");
 	    }
-	    catch(Exception e){}
+	    catch(Exception e){
+	    	e.printStackTrace();
+	    }
 		
 	}
 	
@@ -444,16 +446,12 @@ public class CarManagerImpl implements ItemManager {
 		File folder = new File("/tmp/Group5");
 		for (File f: folder.listFiles()) {
 			if (f.getName().startsWith("car") && f.getName().endsWith(".ws")) {
-				/*int start = f.getName().indexOf('_');
-				int end = f.getName().indexOf('.');
-				int xid = Integer.parseInt(f.getName().substring(start + 1, end));*/
-				
 				try {
 					ws = (WorkingSet<Car>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
 					Set<Integer> xids = ws.getAllTransactions();
 					for (int xid: xids) {
 						if (middleware.getTransactionStatus(xid)) {
-							middleware.commit(xid);
+							middleware.commitRecovery(xid, "car");
 						}
 						else {
 							middleware.abort(xid);

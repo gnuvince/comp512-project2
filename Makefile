@@ -66,12 +66,23 @@ runflight:
 	# NON-Debug
 	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT)
 
+recoverflight:
+	# DEBUG MODE
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8007,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar flightcode.ResImpl.FlightManagerImpl $(FLIGHTPORT) $(SERVERHOST) $(SERVERPORT) 	
+
+
 runhotel:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(HOTELPORT) &
 	# Debug
 	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8004,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT)	
 	# NON-Debug
 	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT)
+
+
+recoverhotel:
+	# Debug
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8004,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar hotelcode.ResImpl.HotelManagerImpl $(HOTELPORT) $(SERVERHOST) $(SERVERPORT)	
+
 	
 runserver:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(SERVERPORT) &

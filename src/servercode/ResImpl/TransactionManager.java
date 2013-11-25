@@ -13,7 +13,6 @@ import servercode.ResInterface.ResourceManager;
 
 public class TransactionManager {
 
-
 	private ItemManager rmCar;
 	private ItemManager rmFlight; 
 	private ItemManager rmHotel;
@@ -55,7 +54,7 @@ public class TransactionManager {
 		numberOfTransactions++;
 		
 		//Generate random numbers until we get one that is not already used
-		while (xidsToRMNames.contains(id) || id == 1) {
+		while (xidsToRMNames.contains(id) || id == 1 || transactionStatus.containsKey(id)) {
 			id = new Random().nextInt(10000) + 1; //+1 because can return 0
 		}
 		xidsToRMNames.put(id, new Vector<String>());
@@ -91,20 +90,55 @@ public class TransactionManager {
 					
 				}
 			}
+			if (rm.equals("hotel")) {
+				try {
+					answers += rmHotel.prepare(xid);
+				}
+				catch (RemoteException | InvalidTransactionException e) {
+					
+				}
+			}
+			if (rm.equals("flight")) {
+				try {
+					answers += rmFlight.prepare(xid);
+				}
+				catch (RemoteException | InvalidTransactionException e) {
+					
+				}
+			}
 		}		
 
-		// When it's time to implement logs, don't forget to NOT delete
-		// the log for the current transaction if ANY rm throws CrashException.
 		boolean result = answers == rms.size();
 		transactionStatus.put(xid, result);
+		
+		Vector<String> rmsToRemove = new Vector<String>();
+		
 		if (result) {
 			for(String rm: rms) {
 				if (rm.equals("car")) {
 					try {
-						rmCar.commit(xid);
-						disassociate(xid, "car");
+						rmsToRemove.add("car");
+						System.out.println(rmCar);
+						rmCar.commit(xid);						
 					} catch (RemoteException e) {
 						System.out.println("The car manager could not commit!!!");
+					}
+				}
+				if (rm.equals("hotel")) {
+					try {
+						rmsToRemove.add("hotel");
+						rmHotel.commit(xid);
+					} catch (RemoteException e) {
+						System.out.println("The hotel manager could not commit!!!");
+					}
+				}
+				if (rm.equals("flight")) {
+					try {
+						rmsToRemove.add("flight");
+						rmFlight.commit(xid);
+						System.out.println(rmFlight);
+					} catch (RemoteException e) {
+						System.out.println("The flight manager could not commit!!!");
 					}
 				}
 			}
@@ -119,12 +153,85 @@ public class TransactionManager {
 						System.out.println("The car manager is not available!!!");
 					}
 				}
+				if (rm.equals("hotel")) {
+					try {
+						rmHotel.abort(xid);
+						disassociate(xid, "hotel");
+					} catch (RemoteException e) {
+						System.out.println("The hotel manager is not available!!!");
+					}
+				}
+				if (rm.equals("flight")) {
+					try {
+						rmFlight.abort(xid);
+						disassociate(xid, "flight");
+					} catch (RemoteException e) {
+						System.out.println("The flight manager is not available!!!");
+					}
+				}
 			}			
+		}
+		
+		for(String rm: rmsToRemove){
+			disassociate(xid, rm);
 		}
 				
 		timeToLiveMap.remove(xid);
 		
 		return result;		
+	}
+	
+	public boolean commitRecovery(int xid, String rm) {
+		if (transactionStatus.get(xid)) { //We have to commit
+			if (rm.equals("car")) {
+				try {
+					rmCar.commit(xid);	
+				} catch (RemoteException e) {
+					System.out.println("The car manager could not commit!!!");
+					return false;
+				}
+			}else if (rm.equals("hotel")) {
+				try {
+					rmHotel.commit(xid);
+				} catch (RemoteException e) {
+					System.out.println("The hotel manager could not commit!!!");
+					return false;
+				}
+			} else if (rm.equals("flight")) {
+				try {
+					rmFlight.commit(xid);
+				} catch (RemoteException e) {
+					System.out.println("The flight manager could not commit!!!");
+					return false;
+				}
+			}
+		} else { 						//We have to abort
+			if (rm.equals("car")) {
+				try {
+					rmCar.abort(xid);	
+				} catch (RemoteException e) {
+					System.out.println("The car manager could not abort!!!");
+					return false;
+				}
+			} else if (rm.equals("hotel")) {
+				try {
+					rmHotel.abort(xid);
+				} catch (RemoteException e) {
+					System.out.println("The hotel manager could not abort!!!");
+					return false;
+				}
+			} else if (rm.equals("flight")) {
+				try {
+					rmFlight.abort(xid);
+				} catch (RemoteException e) {
+					System.out.println("The flight manager could not abort!!!");
+					return false;
+				}
+			}
+		}
+		
+		transactionStatus.remove(xid);
+		return true;
 	}
 	
 	private void disassociate(int xid, String rmname) {
@@ -147,7 +254,7 @@ public class TransactionManager {
 	}
 	
 	public boolean isValidTransaction(int id) {
-		return xidsToRMNames.get(id) != null ? true: false;		
+		return xidsToRMNames.containsKey(id) || transactionStatus.containsKey(id);
 	}
 	
 	public boolean canShutdown(){
@@ -178,6 +285,18 @@ public class TransactionManager {
 		if (res == null)
 			return false;
 		return res;
+	}
+	
+	public void updateCarManagerRef(ItemManager im){
+		rmCar = im;
+	}
+	
+	public void updatehotelManagerRef(ItemManager im){
+		rmHotel = im;
+	}
+	
+	public void updateFlightManagerRef(ItemManager im){
+		rmFlight = im;
 	}
 }
 	

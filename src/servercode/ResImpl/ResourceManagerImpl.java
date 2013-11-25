@@ -91,25 +91,21 @@ public class ResourceManagerImpl implements ResourceManager {
     }
     
     public void rebind(String rm) throws RemoteException {
-    	if (rm.equals("car")) {
-    		System.out.println(rmCar);
-    		bindCarManager(carServer, carPort);
-    		System.out.println(rmCar);
-    	}
+    	if (rm.equals("car")) 
+    		txnManager.updateCarManagerRef(bindCarManager(carServer, carPort));
     	else if (rm.equals("flight")) 
-    		bindCarManager(flightServer, flightPort);
+    		txnManager.updateFlightManagerRef(bindFlightManager(flightServer, flightPort));
     	else if (rm.equals("hotel")) 
-    		bindCarManager(hotelServer, hotelPort);
-    	
+    		txnManager.updatehotelManagerRef(bindHotelManager(hotelServer, hotelPort));
     }
 
-	private void bindFlightManager(String flightServer, int flightPort) {
+	private ItemManager bindFlightManager(String flightServer, int flightPort) {
 		try {
             Registry registry = LocateRegistry.getRegistry(flightServer,
                 flightPort);
             rmFlight = (ItemManager) registry.lookup("Group5_FlightManager");
-            if (rmFlight != null) {
-                System.out.println("Successfully connected to the Flight Manager");
+            if (rmFlight != null) {            	
+                System.out.println("Successfully connected to the Flight Manager");                
             }
             else {
                 System.out.println("Connection to the Flight Manager failed");
@@ -119,9 +115,11 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Flight exception: " + e.toString());
             e.printStackTrace();
         }
+		
+		return rmFlight;
 	}
 
-	private void bindCarManager(String carServer, int carPort) {
+	private ItemManager bindCarManager(String carServer, int carPort) {
 		rmCar = null;
 		
 		try {
@@ -138,9 +136,11 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Car exception: " + e.toString());
             e.printStackTrace();
         }
+		
+		return rmCar;
 	}
 
-	private void bindHotelManager(String hotelServer, int hotelPort) {
+	private ItemManager bindHotelManager(String hotelServer, int hotelPort) {
 		try {
             // get a reference to the rmiregistry on Hotel's server
             Registry registry = LocateRegistry.getRegistry(hotelServer, hotelPort);
@@ -157,6 +157,8 @@ public class ResourceManagerImpl implements ResourceManager {
             System.err.println("Hotel exception: " + e.toString());
             e.printStackTrace();
         }
+		
+		return rmHotel;
 	}
 
     // Reads a data item
@@ -928,6 +930,16 @@ public class ResourceManagerImpl implements ResourceManager {
 		
 		System.out.println("Committing transaction: " + id);
 		return txnManager.commit(id);
+	}
+	
+	public boolean commitRecovery(int id, String rm) throws RemoteException, InvalidTransactionException {
+		if (!txnManager.isValidTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+		
+		System.out.println("RECOVERING rm... Committing transaction: " + id);
+		return txnManager.commitRecovery(id, rm);
+		
 	}
 
 	@Override

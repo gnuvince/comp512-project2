@@ -81,6 +81,10 @@ public class FlightManagerImpl implements ItemManager {
             // Bind the remote object's stub in the registry
             registry = LocateRegistry.getRegistry(port);
             registry.rebind("Group5_FlightManager", rm);
+            if (middleware != null){
+                middleware.rebind("flight");
+            	obj.recoverTransactionStatus();
+            }
 
             System.err.println("Flight Server ready");
         } 
@@ -452,7 +456,7 @@ public class FlightManagerImpl implements ItemManager {
 					Set<Integer> xids = ws.getAllTransactions();
 					for (int xid: xids) {
 						if (middleware.getTransactionStatus(xid)) {
-							middleware.commit(xid);
+							middleware.commitRecovery(xid, "flight");
 						}
 						else {
 							middleware.abort(xid);

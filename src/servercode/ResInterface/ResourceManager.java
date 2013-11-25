@@ -130,6 +130,8 @@ public interface ResourceManager extends Remote {
     
     public boolean commit(int id) throws RemoteException, InvalidTransactionException, ConnectException;
     
+    public boolean commitRecovery(int id, String rm) throws RemoteException, InvalidTransactionException;
+    
     public void abort(int id) throws RemoteException, InvalidTransactionException, ConnectException;
     
     public boolean shutdown() throws RemoteException, ConnectException;
