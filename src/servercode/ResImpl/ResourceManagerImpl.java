@@ -7,6 +7,7 @@ package servercode.ResImpl;
 import servercode.ResInterface.*;
 
 import java.util.*;
+import java.io.File;
 import java.rmi.*;
 
 import java.rmi.registry.Registry;
@@ -29,6 +30,8 @@ public class ResourceManagerImpl implements ResourceManager {
     protected ItemManager rmCar    = null;
     protected ItemManager rmFlight = null;
     protected TransactionManager txnManager;
+    private Crash crashCondition; 
+    private MasterRecord masterRecord = new MasterRecord();
     
 	private static int rmiPort = 5005;     
 	
@@ -87,6 +90,12 @@ public class ResourceManagerImpl implements ResourceManager {
         txnManager = TransactionManager.getInstance(rmCar, rmFlight, rmHotel, this);
         txnKillerThread = new Thread(new TransactionKiller(txnManager, this));
         txnKillerThread.start();
+        
+        File mrFile = new File(getMasterRecordFileName());
+    	if (mrFile.exists()) {
+    		masterRecord = (MasterRecord) SerializeUtils.loadFromDisk(getMasterRecordFileName());
+    		m_itemHT = (RMHashtable) SerializeUtils.loadFromDisk(getCommittedFileName());
+    	}
         
     }
     
@@ -520,7 +529,7 @@ public class ResourceManagerImpl implements ResourceManager {
         txnManager.enlist(id, "customer");
         Customer cust = new Customer(cid);
         
-        ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust, this));
+        ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust));
         ws.sendCurrentState(cust.getKey(), cust);
         ws.addLocationToTxn(id,  cust.getKey());
         //writeData(id, cust.getKey(), cust);
@@ -558,9 +567,9 @@ public class ResourceManagerImpl implements ResourceManager {
         if (cust == null) {
             cust = new Customer(customerID);
             
-            ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust, this));
+            ws.addCommand(id, new CommandCustomerPut(id,  cust.getKey(), cust));
             ws.sendCurrentState(customerID+"", cust);
-            ws.addLocationToTxn(id,  customerID+"");            
+            ws.addLocationToTxn(id, customerID+"");            
             
             Trace.info("INFO: RM::newCustomer(" + id + ", " + customerID
                 + ") created a new customer");
@@ -654,7 +663,7 @@ public class ResourceManagerImpl implements ResourceManager {
             }
 
             // remove the customer from the storage
-            ws.addCommand(id, new CommandCustomerDelete(id, cust.getKey(), this));            
+            ws.addCommand(id, new CommandCustomerDelete(id, cust.getKey()));            
             ws.deleteItem(customerID+"");
             
             Trace.info("RM::deleteCustomer(" + id + ", " + customerID + ") succeeded");
@@ -708,7 +717,7 @@ public class ResourceManagerImpl implements ResourceManager {
         if (reservedItem != null) {
         	       	
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
-            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust, this));
+            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust));
 
             return true;
         }
@@ -761,7 +770,7 @@ public class ResourceManagerImpl implements ResourceManager {
 
         if (reservedItem != null) {
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
-            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust, this));
+            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust));
             return true;
         }
 
@@ -815,7 +824,7 @@ public class ResourceManagerImpl implements ResourceManager {
         
         if (reservedItem != null) {
             cust.reserve(reservedItem.getKey(), reservedItem.getLocation(), reservedItem.getPrice());
-            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust, this));
+            ws.addCommand(id, new CommandCustomerPut(id, cust.getKey(), cust));
             return true;
         }
 
@@ -938,8 +947,7 @@ public class ResourceManagerImpl implements ResourceManager {
         }
 		
 		System.out.println("RECOVERING rm... Committing transaction: " + id);
-		return txnManager.commitRecovery(id, rm);
-		
+		return txnManager.commitRecovery(id, rm);		
 	}
 
 	@Override
@@ -992,6 +1000,19 @@ public class ResourceManagerImpl implements ResourceManager {
 		System.out.println("Can't shut system down since transactions are still alive");
 		return false;
 	}
+	
+	public void exit(){	
+		try{
+			// Unregister ourself
+			registry.unbind("Group5_ResourceManager");
+
+			// Unexport; this will also remove us from the RMI runtime
+			UnicastRemoteObject.unexportObject(this, true);
+			txnKillerThread.stop();
+			System.out.println("Shutting Down!!! Have a good night");
+		}
+		catch(Exception e){}
+	}
 
 	@Override
 	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException {
@@ -1003,12 +1024,62 @@ public class ResourceManagerImpl implements ResourceManager {
 			rmFlight.setCrashCondition(crashCondition);
 		else if (rmName.equals("hotel"))
 			rmHotel.setCrashCondition(crashCondition);
+		else if (rmName.equals("customer"))
+			this.crashCondition = crashCondition;
 	}
 
 	@Override
 	public boolean getTransactionStatus(int xid) throws RemoteException {
 		return txnManager.getTransactionStatus(xid);
-	}	
+	}
 	
+	@Override
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
+		//if (crashCondition == Crash.P_B_SAVEWS) System.exit(42);
+		
+		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
+		
+		//if (crashCondition == Crash.P_A_SAVEWS) System.exit(42);
+		
+		return 1; 
+	}
+
+	private String getCommittedFileName() {
+		return "/tmp/Group5/customerdb." + masterRecord.getCommittedIndex();
+	}
+
+	private String getWorkingFileName() {
+		return "/tmp/Group5/customerdb." + masterRecord.getWorkingIndex();
+	}
+	
+	private String getMasterRecordFileName() {
+		return "/tmp/Group5/customerdb.mr";
+	}
+
+	private String getWorkingSetFileName(int xid) {
+		return "/tmp/Group5/customer_" + xid + ".ws";
+	}
+	
+	synchronized public boolean commitCustomer(int id){
+		//if (crashCondition == Crash.P_A_COMMITRECV) System.exit(42);
+		
+		ws.commit(id, this);
+		
+		SerializeUtils.saveToDisk(m_itemHT, getWorkingFileName());
+		masterRecord.setLastXid(id);
+		masterRecord.swap();
+		SerializeUtils.saveToDisk(masterRecord, getMasterRecordFileName());
+		SerializeUtils.deleteFile("/tmp/Group5/customer_" + id + ".ws");
+		
+		return lm.UnlockAll(id);
+	}
+
+	public void abortCustomer(int id) {
+		ws.abort(id);
+		
+		SerializeUtils.deleteFile("/tmp/Group5/customer_" + id + ".ws");
+		
+		lm.UnlockAll(id);		
+	} 	
 
 }

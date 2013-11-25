@@ -1,27 +1,26 @@
 package servercode.ResImpl;
 
 import servercode.ResInterface.ItemManager;
+import servercode.ResInterface.ResourceManager;
 
 public class CommandCustomerPut extends Command {
 
-	private ResourceManagerImpl resourceManager;
 	private int id;
 	private String itemId;
 	private Customer newCust;	
 	
-	public CommandCustomerPut(int id, String itemId, Customer newCustomer, ResourceManagerImpl rm){
-		this.resourceManager = rm;
+	public CommandCustomerPut(int id, String itemId, Customer newCustomer){
 		this.id = id;
 		this.itemId = itemId;
 		this.newCust = newCustomer;	
 	}
 
 	@Override
-	public void execute() {
-		resourceManager.writeData(id, itemId, newCust);		
+	public void execute(ResourceManager mw) {
+		((ResourceManagerImpl)mw).writeData(id, itemId, newCust);
 	}
 	
 	public void execute(ItemManager im) {
-		
+
 	}
 }

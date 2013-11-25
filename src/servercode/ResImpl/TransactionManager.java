@@ -16,7 +16,7 @@ public class TransactionManager {
 	private ItemManager rmCar;
 	private ItemManager rmFlight; 
 	private ItemManager rmHotel;
-	private ResourceManager rm;
+	private ResourceManager rmCustomer;
 	
 	//Same as hashMap but thread safe
 	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
@@ -36,7 +36,7 @@ public class TransactionManager {
 		this.rmCar = carRm;
 		this.rmFlight = flightRm;
 		this.rmHotel = hotelRm;
-		this.rm = rm;
+		this.rmCustomer = rm;
 	}
 	
 	
@@ -78,8 +78,11 @@ public class TransactionManager {
 	
 	public boolean commit(int xid) {
 		Vector<String> rms = xidsToRMNames.get(xid);
+		if (rms == null) rms = new Vector<String>();
 		
 		int answers = 0;
+		
+		if (crashCondition == Crash.C_B_VR) Runtime.getRuntime().exit(42);
 		
 		for (String rm: rms) {
 			if (rm.equals("car")) {
@@ -106,6 +109,14 @@ public class TransactionManager {
 					
 				}
 			}
+			if (rm.equals("customer")) {
+				try {
+					answers += rmCustomer.prepare(xid);
+				}
+				catch (RemoteException | InvalidTransactionException e) {
+					
+				}
+			}
 		}		
 
 		boolean result = answers == rms.size();
@@ -118,7 +129,6 @@ public class TransactionManager {
 				if (rm.equals("car")) {
 					try {
 						rmsToRemove.add("car");
-						System.out.println(rmCar);
 						rmCar.commit(xid);						
 					} catch (RemoteException e) {
 						System.out.println("The car manager could not commit!!!");
@@ -136,9 +146,16 @@ public class TransactionManager {
 					try {
 						rmsToRemove.add("flight");
 						rmFlight.commit(xid);
-						System.out.println(rmFlight);
 					} catch (RemoteException e) {
 						System.out.println("The flight manager could not commit!!!");
+					}
+				}
+				if (rm.equals("customer")) {
+					try {
+						rmsToRemove.add("customer");						
+						rmCustomer.commitCustomer(xid);
+					} catch (RemoteException e) {
+						System.out.println("The customer manager could not commit!!!");
 					}
 				}
 			}
@@ -167,6 +184,14 @@ public class TransactionManager {
 						disassociate(xid, "flight");
 					} catch (RemoteException e) {
 						System.out.println("The flight manager is not available!!!");
+					}
+				}
+				if (rm.equals("customer")) {
+					try {
+						rmCustomer.abortCustomer(xid);
+						disassociate(xid, "customer");
+					} catch (RemoteException e) {
+						System.out.println("The customer manager is not available!!!");
 					}
 				}
 			}			

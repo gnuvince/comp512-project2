@@ -138,8 +138,16 @@ public interface ResourceManager extends Remote {
 
 	public void setCrashCondition(Crash crashCondition, String rmName) throws RemoteException;
 	
+	public int prepare(int xid) throws RemoteException, InvalidTransactionException;    
+	
+	public boolean commitCustomer(int id) throws RemoteException;
+	
+	public void abortCustomer(int id) throws RemoteException;
+	
 	public void rebind(String rm) throws RemoteException;
 	
 	public boolean getTransactionStatus(int xid) throws RemoteException;
+	
+	public void exit() throws RemoteException;
 
 }

@@ -123,7 +123,7 @@ public class HotelManagerImpl implements ItemManager {
             // the manager's hash table.
             Hotel newObj = new Hotel(location, quantity, price);
             
-            ws.addCommand(id, new CommandPut(id, newObj.getKey(), newObj, this));
+            ws.addCommand(id, new CommandPut(id, newObj.getKey(), newObj));
             ws.sendCurrentState(newObj.getLocation(), newObj);
             ws.addLocationToTxn(id, location);            
             
@@ -140,7 +140,7 @@ public class HotelManagerImpl implements ItemManager {
                 curObj.setPrice(price);
             }
             
-            ws.addCommand(id, new CommandPut(id, Hotel.getKey(location), curObj, this));
+            ws.addCommand(id, new CommandPut(id, Hotel.getKey(location), curObj));
             ws.sendCurrentState(curObj.getLocation(), curObj);            
             ws.addLocationToTxn(id, location);
 
@@ -185,7 +185,7 @@ public class HotelManagerImpl implements ItemManager {
             	
             	ws.deleteItem(curObj.getLocation()); //the item stays in ws but its current state is set to null
             	
-            	ws.addCommand(id, new CommandDelete(id, curObj.getKey(), this));
+            	ws.addCommand(id, new CommandDelete(id, curObj.getKey()));
             	ws.addLocationToTxn(id, location);
 
                 Trace.info("RM::deleteItem(" + id + ", " + itemId+ ") item deleted");
@@ -285,7 +285,7 @@ public class HotelManagerImpl implements ItemManager {
             curObj.setCount(curObj.getCount() - 1);
             curObj.setReserved(curObj.getReserved() + 1);
 
-            ws.addCommand(id, new CommandPut(id, key, (ReservableItem)curObj, this));
+            ws.addCommand(id, new CommandPut(id, key, (ReservableItem)curObj));
                         
             Trace.info("RM::reserveRoom( " + id + ", " + customerId + ", " + key + ") succeeded");
             return new ReservedItem(key, curObj.getLocation(), 1, curObj.getPrice());
@@ -328,7 +328,7 @@ public class HotelManagerImpl implements ItemManager {
     	curObj.setCount(curObj.getCount() + count);
     	curObj.setReserved(curObj.getReserved() - count);
     	
-    	ws.addCommand(id, new CommandPut(id, hotelKey, (ReservableItem)curObj, this));
+    	ws.addCommand(id, new CommandPut(id, hotelKey, (ReservableItem)curObj));
     	
     	return true;
     }
@@ -353,7 +353,7 @@ public class HotelManagerImpl implements ItemManager {
 
 	@Override
 	public boolean commit(int id) throws RemoteException {
-		if (crashCondition == Crash.P_A_COMMITRECV) System.exit(43);
+		if (crashCondition == Crash.P_A_COMMITRECV) Runtime.getRuntime().exit(43);
 		
 		ws.commit(id, this);
 		
@@ -390,11 +390,11 @@ public class HotelManagerImpl implements ItemManager {
 
 	@Override
 	public int prepare(int xid) throws RemoteException, InvalidTransactionException {
-		if (crashCondition == Crash.P_B_SAVEWS) System.exit(42);
+		if (crashCondition == Crash.P_B_SAVEWS) Runtime.getRuntime().exit(42);
 		
 		SerializeUtils.saveToDisk(ws, getWorkingSetFileName(xid));
 		
-		if (crashCondition == Crash.P_A_SAVEWS) System.exit(42);
+		if (crashCondition == Crash.P_A_SAVEWS) Runtime.getRuntime().exit(42);
 		
 		return 1; 
 	}

@@ -7,6 +7,7 @@ import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 import servercode.ResInterface.ItemManager;
+import servercode.ResInterface.ResourceManager;
 
 public class WorkingSet<StateType> implements Serializable {
 	
@@ -39,18 +40,12 @@ public class WorkingSet<StateType> implements Serializable {
 		idToLocationsMap.put(id, items);		
 	}
 	
-	public synchronized void commit(int id){
-		this.commit(id, null);
-	}
-	
 	public synchronized void commit(int id, ItemManager im){
 		Vector<Command> commands = idToCommandsMap.get(id);
+		
 		if (commands != null){
 			for (Command c: commands) {
-				if (im == null)
-					c.execute();
-				else
-					c.execute(im);
+				c.execute(im);
 			}		
 		}
 		
@@ -65,6 +60,27 @@ public class WorkingSet<StateType> implements Serializable {
 		idToCommandsMap.remove(id);
 		idToLocationsMap.remove(id);
 	}
+	
+	public synchronized void commit(int id, ResourceManager mw){
+		Vector<Command> commands = idToCommandsMap.get(id);
+		if (commands != null){
+			for (Command c: commands) {
+				c.execute(mw);
+			}		
+		}
+		
+		//Remove currentStates of object that the txn modified
+		Vector<String> locations = idToLocationsMap.get(id);
+		if (locations != null){
+			for(String location: locations) {
+				currentStatesMap.remove(location);			
+			}
+		}
+		
+		idToCommandsMap.remove(id);
+		idToLocationsMap.remove(id);
+	}
+	
 	
 	public synchronized void abort(int id){
 		Vector<String> locations = idToLocationsMap.get(id);

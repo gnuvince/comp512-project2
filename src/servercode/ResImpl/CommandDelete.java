@@ -3,23 +3,18 @@ package servercode.ResImpl;
 import flightcode.ResImpl.FlightManagerImpl;
 import hotelcode.ResImpl.HotelManagerImpl;
 import servercode.ResInterface.ItemManager;
+import servercode.ResInterface.ResourceManager;
 import carcode.ResImpl.Car;
 import carcode.ResImpl.CarManagerImpl;
 
 public class CommandDelete extends Command {
 	
-	private ItemManager itemManager;
 	private int id;
 	private String itemId;
 	
-	public CommandDelete(int id, String itemId, ItemManager im){
-		this.itemManager = im;
+	public CommandDelete(int id, String itemId){
 		this.id = id;
 		this.itemId = itemId;		
-	}
-	
-	public void execute() {
-		this.execute(this.itemManager);	
 	}
 	
 	public void execute(ItemManager im){
@@ -36,6 +31,12 @@ public class CommandDelete extends Command {
 			((FlightManagerImpl) im).deleteFlight(id, itemId);			
 		}
 			
+	}
+
+	@Override
+	public void execute(ResourceManager mw) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
