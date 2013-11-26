@@ -6,6 +6,8 @@ package servercode.ResImpl;
 
 import servercode.ResInterface.*;
 
+import hotelcode.ResImpl.Hotel;
+
 import java.util.*;
 import java.io.File;
 import java.io.Serializable;
@@ -1093,6 +1095,13 @@ public class ResourceManagerImpl implements ResourceManager, Serializable {
 		txnManager = temp;
 		
 		txnManager.setRmCustomer(this);
+		
+		File folder = new File("/tmp/Group5");
+		for (File f: folder.listFiles()) {
+			if (f.getName().startsWith("customer") && f.getName().endsWith(".ws")) {
+					ws = (WorkingSet<Customer>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
+			}
+		}
 		
 		Vector<Integer> xids = txnManager.getAllActiveTransactions();
 		for (Integer xid: xids){
