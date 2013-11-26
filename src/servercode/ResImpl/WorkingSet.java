@@ -42,7 +42,8 @@ public class WorkingSet<StateType> implements Serializable {
 	
 	public synchronized void commit(int id, ItemManager im){
 		Vector<Command> commands = idToCommandsMap.get(id);
-		
+		if (commands == null) return; //in case MW crashed and resends decision but decision was already received at that specific RM
+				
 		if (commands != null){
 			for (Command c: commands) {
 				c.execute(im);
@@ -63,6 +64,8 @@ public class WorkingSet<StateType> implements Serializable {
 	
 	public synchronized void commit(int id, ResourceManager mw){
 		Vector<Command> commands = idToCommandsMap.get(id);
+		if (commands == null) return;
+		
 		if (commands != null){
 			for (Command c: commands) {
 				c.execute(mw);

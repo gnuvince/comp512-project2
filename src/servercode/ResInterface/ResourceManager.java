@@ -146,8 +146,8 @@ public interface ResourceManager extends Remote {
 	
 	public void rebind(String rm) throws RemoteException;
 	
-	public boolean getTransactionStatus(int xid) throws RemoteException;
+	public boolean getTransactionFinalAction(int xid) throws RemoteException;
 	
 	public void exit() throws RemoteException;
-
+	
 }

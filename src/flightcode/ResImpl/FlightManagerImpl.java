@@ -455,7 +455,7 @@ public class FlightManagerImpl implements ItemManager {
 					ws = (WorkingSet<Flight>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
 					Set<Integer> xids = ws.getAllTransactions();
 					for (int xid: xids) {
-						if (middleware.getTransactionStatus(xid)) {
+						if (middleware.getTransactionFinalAction(xid)) {
 							middleware.commitRecovery(xid, "flight");
 						}
 						else {

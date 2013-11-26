@@ -428,7 +428,7 @@ public class HotelManagerImpl implements ItemManager {
 					ws = (WorkingSet<Hotel>)SerializeUtils.loadFromDisk(f.getAbsolutePath());
 					Set<Integer> xids = ws.getAllTransactions();
 					for (int xid: xids) {
-						if (middleware.getTransactionStatus(xid)) {
+						if (middleware.getTransactionFinalAction(xid)) {
 							middleware.commitRecovery(xid, "hotel");
 						}
 						else {

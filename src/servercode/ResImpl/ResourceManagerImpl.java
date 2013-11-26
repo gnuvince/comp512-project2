@@ -8,6 +8,7 @@ import servercode.ResInterface.*;
 
 import java.util.*;
 import java.io.File;
+import java.io.Serializable;
 import java.rmi.*;
 
 import java.rmi.registry.Registry;
@@ -15,10 +16,12 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 
+import flightcode.ResImpl.Flight;
+
 import LockManager.*;
 
 //public class ResourceManagerImpl extends java.rmi.server.UnicastRemoteObject
-public class ResourceManagerImpl implements ResourceManager {
+public class ResourceManagerImpl implements ResourceManager, Serializable {
 
 	public static Registry registry;
     protected RMHashtable m_itemHT = new RMHashtable();
@@ -69,6 +72,7 @@ public class ResourceManagerImpl implements ResourceManager {
             registry.rebind("Group5_ResourceManager", rm);
 
             System.err.println("Server ready");
+            obj.recoverMiddleware();
         }
         catch (Exception e) {
             System.err.println("Server exception: " + e.toString());
@@ -938,7 +942,7 @@ public class ResourceManagerImpl implements ResourceManager {
         }
 		
 		System.out.println("Committing transaction: " + id);
-		return txnManager.commit(id);
+		return txnManager.commitPhase1(id);
 	}
 	
 	public boolean commitRecovery(int id, String rm) throws RemoteException, InvalidTransactionException {
@@ -1029,8 +1033,8 @@ public class ResourceManagerImpl implements ResourceManager {
 	}
 
 	@Override
-	public boolean getTransactionStatus(int xid) throws RemoteException {
-		return txnManager.getTransactionStatus(xid);
+	public boolean getTransactionFinalAction(int xid) throws RemoteException {
+		return txnManager.getTransactionFinalAction(xid);
 	}
 	
 	@Override
@@ -1059,7 +1063,7 @@ public class ResourceManagerImpl implements ResourceManager {
 	private String getWorkingSetFileName(int xid) {
 		return "/tmp/Group5/customer_" + xid + ".ws";
 	}
-	
+		
 	synchronized public boolean commitCustomer(int id){
 		//if (crashCondition == Crash.P_A_COMMITRECV) System.exit(42);
 		
@@ -1081,5 +1085,28 @@ public class ResourceManagerImpl implements ResourceManager {
 		
 		lm.UnlockAll(id);		
 	} 	
+			
+	private void recoverMiddleware() {
+		
+		TransactionManager temp = txnManager.retrieveTransactionManager();
+		if (temp == null) return;
+		txnManager = temp;
+		
+		txnManager.setRmCustomer(this);
+		
+		Vector<Integer> xids = txnManager.getAllActiveTransactions();
+		for (Integer xid: xids){
+			TransactionStatus status = txnManager.getTransactionStatus(xid);
+			if (status == TransactionStatus.NOTCOMMITTED)
+				try {
+					abort(xid);
+				} catch (Exception e) {	} 
+			else if (status == TransactionStatus.PHASE1)
+				txnManager.commitPhase1(xid);
+			else if (status == TransactionStatus.PHASE2)
+				txnManager.commitPhase2(xid);
+		}
+		
+	}
 
 }

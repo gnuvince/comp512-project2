@@ -1,22 +1,23 @@
 package servercode.ResImpl;
 
-import java.rmi.ConnectException;
+import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
 
 import servercode.ResInterface.ItemManager;
 import servercode.ResInterface.ResourceManager;
 
-public class TransactionManager {
-
+public class TransactionManager implements Serializable {
+	
+	private HashMap<Integer, TransactionStatus> xidsToStatus = new HashMap<Integer, TransactionStatus>();
+	
 	private ItemManager rmCar;
 	private ItemManager rmFlight; 
 	private ItemManager rmHotel;
-	private ResourceManager rmCustomer;
+	private transient ResourceManager rmCustomer;
 	
 	//Same as hashMap but thread safe
 	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
@@ -27,7 +28,7 @@ public class TransactionManager {
 	private static TransactionManager instance = null;
 	
 	private long TIMEOUT = 120000;
-	private Crash crashCondition;
+	private transient Crash crashCondition;
 	
 	////Singleton class so private constructor
 	private TransactionManager(ItemManager carRm, ItemManager flightRm,
@@ -38,7 +39,6 @@ public class TransactionManager {
 		this.rmHotel = hotelRm;
 		this.rmCustomer = rm;
 	}
-	
 	
 	public static TransactionManager getInstance(ItemManager carRm, ItemManager flightRm, ItemManager hotelRm, ResourceManager rm) {		
 		if(instance == null) {
@@ -57,9 +57,9 @@ public class TransactionManager {
 		while (xidsToRMNames.contains(id) || id == 1 || transactionStatus.containsKey(id)) {
 			id = new Random().nextInt(10000) + 1; //+1 because can return 0
 		}
-		xidsToRMNames.put(id, new Vector<String>());
-		
-		timeToLiveMap.put(id, System.currentTimeMillis());
+		xidsToRMNames.put(id, new Vector<String>());		
+		timeToLiveMap.put(id, System.currentTimeMillis());		
+		xidsToStatus.put(id, TransactionStatus.NOTCOMMITTED);
 		
 		return id;
 	}
@@ -76,12 +76,15 @@ public class TransactionManager {
 		timeToLiveMap.put(id, System.currentTimeMillis());
 	}
 	
-	public boolean commit(int xid) {
+	public boolean commitPhase1(int xid) {
 		Vector<String> rms = xidsToRMNames.get(xid);
 		if (rms == null) rms = new Vector<String>();
 		
+		xidsToStatus.put(xid, TransactionStatus.PHASE1);
+		
 		int answers = 0;
 		
+		logTransactionManager();
 		if (crashCondition == Crash.C_B_VR) Runtime.getRuntime().exit(42);
 		
 		for (String rm: rms) {
@@ -117,10 +120,26 @@ public class TransactionManager {
 					
 				}
 			}
-		}		
+			if (crashCondition == Crash.C_A_ONEREPLY) Runtime.getRuntime().exit(42);
+		}	
+		
+		if (crashCondition == Crash.C_A_ALLREPLY) Runtime.getRuntime().exit(42);
 
 		boolean result = answers == rms.size();
-		transactionStatus.put(xid, result);
+		transactionStatus.put(xid, result);  //DECISION IS TAKEN!!!
+		
+		if (crashCondition == Crash.C_A_DECISION) Runtime.getRuntime().exit(42);
+		
+		return commitPhase2(xid);		
+	}
+
+	public boolean commitPhase2(int xid) {
+		Vector<String> rms = xidsToRMNames.get(xid);
+		if (rms == null) rms = new Vector<String>();
+		
+		xidsToStatus.put(xid, TransactionStatus.PHASE2);
+		
+		boolean result = transactionStatus.get(xid);
 		
 		Vector<String> rmsToRemove = new Vector<String>();
 		
@@ -158,6 +177,7 @@ public class TransactionManager {
 						System.out.println("The customer manager could not commit!!!");
 					}
 				}
+				if (crashCondition == Crash.C_A_ONECOMMIT) Runtime.getRuntime().exit(42);
 			}
 		}
 		else {
@@ -197,13 +217,16 @@ public class TransactionManager {
 			}			
 		}
 		
+		if (crashCondition == Crash.C_A_ALLCOMMIT) Runtime.getRuntime().exit(42);
+		
 		for(String rm: rmsToRemove){
 			disassociate(xid, rm);
 		}
 				
 		timeToLiveMap.remove(xid);
+		xidsToStatus.remove(xid);
 		
-		return result;		
+		return result;
 	}
 	
 	public boolean commitRecovery(int xid, String rm) {
@@ -305,7 +328,7 @@ public class TransactionManager {
 		this.crashCondition = crashCondition;
 	}
 	
-	public boolean getTransactionStatus(int xid) {
+	public boolean getTransactionFinalAction(int xid) {
 		Boolean res = transactionStatus.get(xid);
 		if (res == null)
 			return false;
@@ -322,6 +345,36 @@ public class TransactionManager {
 	
 	public void updateFlightManagerRef(ItemManager im){
 		rmFlight = im;
+	}
+	
+	public Vector<Integer> getAllActiveTransactions(){
+		Vector<Integer> xids = new Vector<Integer>();
+		
+		for (ConcurrentHashMap.Entry<Integer, Vector<String>> entry : xidsToRMNames.entrySet()) {
+			xids.add(entry.getKey());
+		}
+		
+		return xids;
+	}
+	
+	public TransactionStatus getTransactionStatus(int xid){
+		return xidsToStatus.get(xid);		
+	}
+	
+	public void logTransactionManager(){
+		SerializeUtils.saveToDisk(this, getTxnManagerFileName());
+	}
+
+	public TransactionManager retrieveTransactionManager(){
+		return (TransactionManager)SerializeUtils.loadFromDisk(getTxnManagerFileName());
+	}
+	
+	private String getTxnManagerFileName() {
+		return "/tmp/Group5/txnManager.tm";
+	}
+	
+	public void setRmCustomer(ResourceManager rm){
+		this.rmCustomer = rm;
 	}
 }
 	
