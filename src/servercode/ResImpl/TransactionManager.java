@@ -184,32 +184,32 @@ public class TransactionManager implements Serializable {
 			for(String rm: rms) {
 				if (rm.equals("car")) { 
 					try {
+						rmsToRemove.add("car");
 						rmCar.abort(xid);		
-						disassociate(xid, "car");
 					} catch (RemoteException e) {
 						System.out.println("The car manager is not available!!!");
 					}
 				}
 				if (rm.equals("hotel")) {
 					try {
+						rmsToRemove.add("hotel");
 						rmHotel.abort(xid);
-						disassociate(xid, "hotel");
 					} catch (RemoteException e) {
 						System.out.println("The hotel manager is not available!!!");
 					}
 				}
 				if (rm.equals("flight")) {
 					try {
+						rmsToRemove.add("flight");
 						rmFlight.abort(xid);
-						disassociate(xid, "flight");
 					} catch (RemoteException e) {
 						System.out.println("The flight manager is not available!!!");
 					}
 				}
 				if (rm.equals("customer")) {
 					try {
+						rmsToRemove.add("customer");
 						rmCustomer.abortCustomer(xid);
-						disassociate(xid, "customer");
 					} catch (RemoteException e) {
 						System.out.println("The customer manager is not available!!!");
 					}
@@ -225,6 +225,8 @@ public class TransactionManager implements Serializable {
 				
 		timeToLiveMap.remove(xid);
 		xidsToStatus.remove(xid);
+		
+		deleteTransactionManagerLog();
 		
 		return result;
 	}
@@ -367,6 +369,10 @@ public class TransactionManager implements Serializable {
 
 	public TransactionManager retrieveTransactionManager(){
 		return (TransactionManager)SerializeUtils.loadFromDisk(getTxnManagerFileName());
+	}
+	
+	private void deleteTransactionManagerLog() {
+		SerializeUtils.deleteFile(getTxnManagerFileName());
 	}
 	
 	private String getTxnManagerFileName() {
