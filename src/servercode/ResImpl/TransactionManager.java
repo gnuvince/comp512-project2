@@ -127,7 +127,7 @@ public class TransactionManager implements Serializable {
 
 		boolean result = answers == rms.size();
 		transactionStatus.put(xid, result);  //DECISION IS TAKEN!!!
-		
+				
 		if (crashCondition == Crash.C_A_DECISION) Runtime.getRuntime().exit(42);
 		
 		return commitPhase2(xid);		
@@ -138,6 +138,7 @@ public class TransactionManager implements Serializable {
 		if (rms == null) rms = new Vector<String>();
 		
 		xidsToStatus.put(xid, TransactionStatus.PHASE2);
+		logTransactionManager();
 		
 		boolean result = transactionStatus.get(xid);
 		
@@ -177,6 +178,7 @@ public class TransactionManager implements Serializable {
 						System.out.println("The customer manager could not commit!!!");
 					}
 				}
+				
 				if (crashCondition == Crash.C_A_ONECOMMIT) Runtime.getRuntime().exit(42);
 			}
 		}

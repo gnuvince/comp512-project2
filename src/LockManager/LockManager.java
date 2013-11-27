@@ -6,7 +6,7 @@ import java.util.Vector;
 
 public class LockManager implements Serializable {
     private static int         TABLE_SIZE       = 2039;
-    private static int         DEADLOCK_TIMEOUT = 30000;
+    private static int         DEADLOCK_TIMEOUT = 3000000;
 
     private static TPHashTable lockTable        = new TPHashTable(
                                                     LockManager.TABLE_SIZE);
@@ -164,6 +164,39 @@ public class LockManager implements Serializable {
                                     // the data item just unlocked. So, WRITE
                                     // lock
                                     // cannot be granted.
+                                	/*DataObj first = (DataObj)vect1.get(j);
+                                	if (first.getXId() == waitObj.getXId()) {
+                                		waitTable.remove(first);
+                                		try {
+											this.Lock(waitObj.getXId(), waitObj.getDataName(), waitObj.getLockType());
+										} catch (DeadlockException e1) {
+											// TODO Auto-generated catch block
+											System.err.println("Ca arrivera jamais... lol");
+											e1.printStackTrace();
+										}
+                                		TrxnObj trxnObjRead = new TrxnObj(waitObj.getXId(), waitObj.getDataName(), LockType.READ);
+                                        DataObj dataObjRead = new DataObj(waitObj.getXId(), waitObj.getDataName(), LockType.READ);
+                                        lockTable.remove(trxnObjRead);
+                                        lockTable.remove(dataObjRead);
+                                        
+                                        trxnObjRead.setLockType(LockType.WRITE);
+                                        dataObjRead.setLockType(LockType.WRITE);
+                                        lockTable.add(trxnObj);
+                                        lockTable.add(dataObj);
+                                        
+                                        try {
+                                            synchronized (waitObj.getThread()) {
+                                                waitObj.getThread().notify();
+                                            }
+                                        }
+                                        catch (Exception e) {
+                                            System.out
+                                                .println("Exception on unlock\n"
+                                                    + e.getMessage());
+                                        }
+                                        
+                                        
+                                	}*/
                                     break;
                                 }
                             }
