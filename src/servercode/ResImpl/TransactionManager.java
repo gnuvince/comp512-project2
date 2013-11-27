@@ -186,32 +186,32 @@ public class TransactionManager implements Serializable {
 			for(String rm: rms) {
 				if (rm.equals("car")) { 
 					try {
-						rmsToRemove.add("car");
 						rmCar.abort(xid);		
+						rmsToRemove.add("car");
 					} catch (RemoteException e) {
 						System.out.println("The car manager is not available!!!");
 					}
 				}
 				if (rm.equals("hotel")) {
 					try {
-						rmsToRemove.add("hotel");
 						rmHotel.abort(xid);
+						rmsToRemove.add("hotel");
 					} catch (RemoteException e) {
 						System.out.println("The hotel manager is not available!!!");
 					}
 				}
 				if (rm.equals("flight")) {
 					try {
-						rmsToRemove.add("flight");
 						rmFlight.abort(xid);
+						rmsToRemove.add("flight");
 					} catch (RemoteException e) {
 						System.out.println("The flight manager is not available!!!");
 					}
 				}
 				if (rm.equals("customer")) {
 					try {
-						rmsToRemove.add("customer");
 						rmCustomer.abortCustomer(xid);
+						rmsToRemove.add("customer");
 					} catch (RemoteException e) {
 						System.out.println("The customer manager is not available!!!");
 					}
@@ -297,7 +297,8 @@ public class TransactionManager implements Serializable {
 	
 	// For now, there isn't much difference between commit and abort !!??
 	public Vector<String> abort(int id) {
-		Vector<String> v = xidsToRMNames.get(id);		
+		Vector<String> v = xidsToRMNames.get(id);	
+		if (v == null) v = new Vector<String>();
 		xidsToRMNames.remove(id);
 		timeToLiveMap.remove(id);
 		
