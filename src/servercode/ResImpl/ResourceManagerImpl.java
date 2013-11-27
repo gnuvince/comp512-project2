@@ -987,6 +987,7 @@ public class ResourceManagerImpl implements ResourceManager, Serializable {
 		
 		System.out.println("Aborting transaction: " + id);
 		Vector<String> rms = txnManager.abort(id);
+		
 		 
 		for(String rm: rms) {
 			if (rm.equals("car"))

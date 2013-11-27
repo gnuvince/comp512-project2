@@ -296,7 +296,8 @@ public class TransactionManager implements Serializable {
 	}
 	
 	public Vector<String> abort(int id) {
-		Vector<String> v = xidsToRMNames.get(id);		
+		Vector<String> v = xidsToRMNames.get(id);	
+		if (v == null) v = new Vector<String>();
 		xidsToRMNames.remove(id);
 		timeToLiveMap.remove(id);
 		
