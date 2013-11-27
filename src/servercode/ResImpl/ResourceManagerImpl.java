@@ -948,12 +948,34 @@ public class ResourceManagerImpl implements ResourceManager, Serializable {
 	}
 	
 	public boolean commitRecovery(int id, String rm) throws RemoteException, InvalidTransactionException {
-		if (!txnManager.isValidTransaction(id)) {
+		if (!txnManager.isActiveTransaction(id)) {
         	throw new InvalidTransactionException(id);
         }
 		
-		System.out.println("RECOVERING rm... Committing transaction: " + id);
-		return txnManager.commitRecovery(id, rm);		
+		System.out.println("RECOVERING " + rm +"... Committing transaction: " + id);
+		return txnManager.commitPhase2(id);		
+	}
+	
+	public void abortRecovery(int id) throws RemoteException, InvalidTransactionException {
+		if (!txnManager.isActiveTransaction(id)) {
+        	throw new InvalidTransactionException(id);
+        }
+		
+		System.out.println("Aborting transaction: " + id);
+		Vector<String> rms = txnManager.abort(id);
+		 
+		for(String rm: rms) {
+			if (rm.equals("car"))
+				rmCar.abort(id);
+			else if (rm.equals("flight"))
+				rmFlight.abort(id);
+			else if (rm.equals("hotel"))
+				rmHotel.abort(id);	
+			else if (rm.equals("customer")){
+				lm.UnlockAll(id);
+				ws.abort(id);
+			}
+		}
 	}
 
 	@Override
