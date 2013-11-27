@@ -23,7 +23,7 @@ public class TransactionManager implements Serializable {
 	//KEY=> TransactionId  Value=>vector of RMs (RMs are represented as strings)
 	private ConcurrentHashMap<Integer, Vector<String>> xidsToRMNames = new ConcurrentHashMap<Integer, Vector<String>>();	
 	private ConcurrentHashMap<Integer,	Long> timeToLiveMap = new ConcurrentHashMap<Integer, Long>(); 
-	private HashMap<Integer, Boolean> transactionStatus = new HashMap<Integer, Boolean>();
+	private HashMap<Integer, Boolean> transactionDecision = new HashMap<Integer, Boolean>();
 	private int numberOfTransactions = 0;	
 	private static TransactionManager instance = null;
 	
@@ -54,7 +54,7 @@ public class TransactionManager implements Serializable {
 		numberOfTransactions++;
 		
 		//Generate random numbers until we get one that is not already used
-		while (xidsToRMNames.contains(id) || id == 1 || transactionStatus.containsKey(id)) {
+		while (xidsToRMNames.contains(id) || id == 1 || transactionDecision.containsKey(id)) {
 			id = new Random().nextInt(10000) + 1; //+1 because can return 0
 		}
 		xidsToRMNames.put(id, new Vector<String>());		
@@ -126,8 +126,9 @@ public class TransactionManager implements Serializable {
 		if (crashCondition == Crash.C_A_ALLREPLY) Runtime.getRuntime().exit(42);
 
 		boolean result = answers == rms.size();
-		transactionStatus.put(xid, result);  //DECISION IS TAKEN!!!
-				
+		transactionDecision.put(xid, result);  //DECISION IS TAKEN!!!
+		xidsToStatus.put(xid, TransactionStatus.PHASE2);
+
 		if (crashCondition == Crash.C_A_DECISION) Runtime.getRuntime().exit(42);
 		
 		return commitPhase2(xid);		
@@ -137,10 +138,9 @@ public class TransactionManager implements Serializable {
 		Vector<String> rms = xidsToRMNames.get(xid);
 		if (rms == null) rms = new Vector<String>();
 		
-		xidsToStatus.put(xid, TransactionStatus.PHASE2);
 		logTransactionManager();
 		
-		boolean result = transactionStatus.get(xid);
+		boolean result = transactionDecision.get(xid);
 		
 		Vector<String> rmsToRemove = new Vector<String>();
 		
@@ -148,32 +148,32 @@ public class TransactionManager implements Serializable {
 			for(String rm: rms) {
 				if (rm.equals("car")) {
 					try {
-						rmsToRemove.add("car");
 						rmCar.commit(xid);						
+						rmsToRemove.add("car");
 					} catch (RemoteException e) {
 						System.out.println("The car manager could not commit!!!");
 					}
 				}
 				if (rm.equals("hotel")) {
 					try {
-						rmsToRemove.add("hotel");
 						rmHotel.commit(xid);
+						rmsToRemove.add("hotel");
 					} catch (RemoteException e) {
 						System.out.println("The hotel manager could not commit!!!");
 					}
 				}
 				if (rm.equals("flight")) {
 					try {
-						rmsToRemove.add("flight");
 						rmFlight.commit(xid);
+						rmsToRemove.add("flight");
 					} catch (RemoteException e) {
 						System.out.println("The flight manager could not commit!!!");
 					}
 				}
 				if (rm.equals("customer")) {
 					try {
-						rmsToRemove.add("customer");						
 						rmCustomer.commitCustomer(xid);
+						rmsToRemove.add("customer");						
 					} catch (RemoteException e) {
 						System.out.println("The customer manager could not commit!!!");
 					}
@@ -186,32 +186,32 @@ public class TransactionManager implements Serializable {
 			for(String rm: rms) {
 				if (rm.equals("car")) { 
 					try {
-						rmsToRemove.add("car");
 						rmCar.abort(xid);		
+						rmsToRemove.add("car");
 					} catch (RemoteException e) {
 						System.out.println("The car manager is not available!!!");
 					}
 				}
 				if (rm.equals("hotel")) {
 					try {
-						rmsToRemove.add("hotel");
 						rmHotel.abort(xid);
+						rmsToRemove.add("hotel");
 					} catch (RemoteException e) {
 						System.out.println("The hotel manager is not available!!!");
 					}
 				}
 				if (rm.equals("flight")) {
 					try {
-						rmsToRemove.add("flight");
 						rmFlight.abort(xid);
+						rmsToRemove.add("flight");
 					} catch (RemoteException e) {
 						System.out.println("The flight manager is not available!!!");
 					}
 				}
 				if (rm.equals("customer")) {
 					try {
-						rmsToRemove.add("customer");
 						rmCustomer.abortCustomer(xid);
+						rmsToRemove.add("customer");
 					} catch (RemoteException e) {
 						System.out.println("The customer manager is not available!!!");
 					}
@@ -233,58 +233,58 @@ public class TransactionManager implements Serializable {
 		return result;
 	}
 	
-	public boolean commitRecovery(int xid, String rm) {
-		if (transactionStatus.get(xid)) { //We have to commit
-			if (rm.equals("car")) {
-				try {
-					rmCar.commit(xid);	
-				} catch (RemoteException e) {
-					System.out.println("The car manager could not commit!!!");
-					return false;
-				}
-			}else if (rm.equals("hotel")) {
-				try {
-					rmHotel.commit(xid);
-				} catch (RemoteException e) {
-					System.out.println("The hotel manager could not commit!!!");
-					return false;
-				}
-			} else if (rm.equals("flight")) {
-				try {
-					rmFlight.commit(xid);
-				} catch (RemoteException e) {
-					System.out.println("The flight manager could not commit!!!");
-					return false;
-				}
-			}
-		} else { 						//We have to abort
-			if (rm.equals("car")) {
-				try {
-					rmCar.abort(xid);	
-				} catch (RemoteException e) {
-					System.out.println("The car manager could not abort!!!");
-					return false;
-				}
-			} else if (rm.equals("hotel")) {
-				try {
-					rmHotel.abort(xid);
-				} catch (RemoteException e) {
-					System.out.println("The hotel manager could not abort!!!");
-					return false;
-				}
-			} else if (rm.equals("flight")) {
-				try {
-					rmFlight.abort(xid);
-				} catch (RemoteException e) {
-					System.out.println("The flight manager could not abort!!!");
-					return false;
-				}
-			}
-		}
-		
-		transactionStatus.remove(xid);
-		return true;
-	}
+//	public boolean commitRecovery(int xid, String rm) {
+//		if (transactionDecision.get(xid)) { //We have to commit
+//			if (rm.equals("car")) {
+//				try {
+//					rmCar.commit(xid);	
+//				} catch (RemoteException e) {
+//					System.out.println("The car manager could not commit!!!");
+//					return false;
+//				}
+//			}else if (rm.equals("hotel")) {
+//				try {
+//					rmHotel.commit(xid);
+//				} catch (RemoteException e) {
+//					System.out.println("The hotel manager could not commit!!!");
+//					return false;
+//				}
+//			} else if (rm.equals("flight")) {
+//				try {
+//					rmFlight.commit(xid);
+//				} catch (RemoteException e) {
+//					System.out.println("The flight manager could not commit!!!");
+//					return false;
+//				}
+//			}
+//		} else { 						//We have to abort
+//			if (rm.equals("car")) {
+//				try {
+//					rmCar.abort(xid);	
+//				} catch (RemoteException e) {
+//					System.out.println("The car manager could not abort!!!");
+//					return false;
+//				}
+//			} else if (rm.equals("hotel")) {
+//				try {
+//					rmHotel.abort(xid);
+//				} catch (RemoteException e) {
+//					System.out.println("The hotel manager could not abort!!!");
+//					return false;
+//				}
+//			} else if (rm.equals("flight")) {
+//				try {
+//					rmFlight.abort(xid);
+//				} catch (RemoteException e) {
+//					System.out.println("The flight manager could not abort!!!");
+//					return false;
+//				}
+//			}
+//		}
+//		
+//		transactionDecision.remove(xid);
+//		return true;
+//	}
 	
 	private void disassociate(int xid, String rmname) {
 		Vector<String> rms = xidsToRMNames.get(xid);
@@ -295,7 +295,6 @@ public class TransactionManager implements Serializable {
 		}
 	}
 	
-	// For now, there isn't much difference between commit and abort !!??
 	public Vector<String> abort(int id) {
 		Vector<String> v = xidsToRMNames.get(id);		
 		xidsToRMNames.remove(id);
@@ -306,7 +305,11 @@ public class TransactionManager implements Serializable {
 	}
 	
 	public boolean isValidTransaction(int id) {
-		return xidsToRMNames.containsKey(id) || transactionStatus.containsKey(id);
+		return xidsToRMNames.containsKey(id);
+	}
+	
+	public boolean isActiveTransaction(int xid) {
+		return xidsToRMNames.containsKey(xid) || transactionDecision.containsKey(xid);
 	}
 	
 	public boolean canShutdown(){
@@ -333,7 +336,7 @@ public class TransactionManager implements Serializable {
 	}
 	
 	public boolean getTransactionFinalAction(int xid) {
-		Boolean res = transactionStatus.get(xid);
+		Boolean res = transactionDecision.get(xid);
 		if (res == null)
 			return false;
 		return res;

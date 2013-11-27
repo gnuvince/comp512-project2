@@ -459,7 +459,7 @@ public class FlightManagerImpl implements ItemManager {
 							middleware.commitRecovery(xid, "flight");
 						}
 						else {
-							middleware.abort(xid);
+							middleware.abortRecovery(xid);
 						}
 					}
 				} catch (RemoteException e) {

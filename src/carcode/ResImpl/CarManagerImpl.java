@@ -453,7 +453,7 @@ public class CarManagerImpl implements ItemManager {
 							middleware.commitRecovery(xid, "car");
 						}
 						else {
-							middleware.abort(xid);
+							middleware.abortRecovery(xid);
 						}
 					}
 				} catch (RemoteException e) {
