@@ -24,7 +24,6 @@
 
 \tableofcontents
 
-
 \section{Introduction}
 
 This third deliverable is the culmination of the implementation of a
@@ -139,7 +138,7 @@ resource manager (including the middleware) has one working set.  A
 
 \begin{itemize}
   \item A table mapping transaction IDs to a vector of commands;
-  \item A table mapping transaction IDs to an item description;
+  \item A table mapping transaction IDs to a vector of item descriptions;
   \item A table mapping an item description to the new, modified state
     of the item.
 \end{itemize}
@@ -201,14 +200,24 @@ the thread will be aborted.
 
 As in the architecture section, figure~\ref{fig:2pc} shows with a
 high-level flow diagram of how a two-phase commit proceeds from the
-point of view of a resource manager.
+point of view of a resource manager and figure~\ref{fig:2pc-mw} shows
+the two-phase commit process from the point of view of the middleware.
 
 \begin{figure}[H]
-  \caption{Two-phase commit}
+  \caption{Two-phase commit (resource manager view)}
   \label{fig:2pc}
 
   \begin{center}
-    \includegraphics[scale=0.5]{2pc.pdf}
+    \includegraphics[scale=0.6]{2pc.pdf}
+  \end{center}
+\end{figure}
+
+\begin{figure}[H]
+  \caption{Two-phase commit (middleware view)}
+  \label{fig:2pc-mw}
+
+  \begin{center}
+    \includegraphics[scale=0.6]{2pc-mw.pdf}
   \end{center}
 \end{figure}
 

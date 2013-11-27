@@ -16,7 +16,7 @@ public class client
 {
     static String message = "blank";
     static ResourceManager rm = null;
-    
+
     public static void main(String args[])
     {
         client obj = new client();
@@ -33,13 +33,13 @@ public class client
         int numRooms;
         int numCars;
         String location;
-        
+
         //For transactions
         Vector<Integer> txnIds = new Vector<Integer>();
 
         String server = "localhost";
         int port = 5005;
-        
+
         if (args.length == 2) {
             server = args[0];
         	port = Integer.parseInt(args[1]);
@@ -66,7 +66,7 @@ public class client
             // make call on remote method
         }
         catch (Exception e)
-        {        	
+        {
             System.err.println("Client exception: " + e.toString());
             e.printStackTrace();
         }
@@ -370,14 +370,14 @@ public class client
                 System.out.println("Customer id: "+arguments.elementAt(2));
                 try{
                     Id = obj.getInt(arguments.elementAt(1));
-                    int customer = obj.getInt(arguments.elementAt(2));                    
-                    String bill=rm.queryCustomerInfo(Id,customer);                    
+                    int customer = obj.getInt(arguments.elementAt(2));
+                    String bill=rm.queryCustomerInfo(Id,customer);
                     System.out.println("Customer info:"+bill);
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
-                    //e.printStackTrace();
+                    e.printStackTrace();
                 }
                 break;
 
@@ -498,7 +498,7 @@ public class client
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
-                    System.out.println(e.getMessage());                    
+                    System.out.println(e.getMessage());
                     //e.printStackTrace();
                 }
                 break;
@@ -523,7 +523,7 @@ public class client
                 }
                 catch(Exception e){
                     System.out.println("EXCEPTION:");
-                    System.out.println(e.getMessage());                    
+                    System.out.println(e.getMessage());
                     //e.printStackTrace();
                 }
                 break;
@@ -584,9 +584,9 @@ public class client
                     	System.out.println("new customer id:"+Cid);
                     } else {
                     	System.out.println("Customer could not be created");
-                    }                    	
+                    }
                 }
-                catch(Exception e){                	
+                catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
                     //e.printStackTrace();
@@ -598,12 +598,12 @@ public class client
             		break;
             	}
             	System.out.println("Starting a new transaction");
-            	try{       
+            	try{
             		int txnId = rm.start();
                     txnIds.add(txnId);
                     System.out.println("new transaction id: " + txnId);
                 }
-                catch(Exception e){                	
+                catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
                     //e.printStackTrace();
@@ -614,14 +614,14 @@ public class client
             		obj.wrongNumber();
             		break;
             	}
-            	try{     
+            	try{
             		Id = obj.getInt(arguments.elementAt(1));
             		System.out.println("Committing transaction id: " + Id);
             		rm.commit(Id);   //always succeeds for now
-            		txnIds.removeElement(Id);                    
+            		txnIds.removeElement(Id);
                     System.out.println("Committed transaction id: " + Id);
                 }
-                catch(Exception e){                	
+                catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
                     //e.printStackTrace();
@@ -633,13 +633,13 @@ public class client
             		break;
             	}
             	System.out.println("Aborting a transaction");
-            	try{     
+            	try{
             		Id = obj.getInt(arguments.elementAt(1));
-            		rm.abort(Id); 
+            		rm.abort(Id);
                     txnIds.removeElement(Id);
                     System.out.println("Aborted transaction id: " + Id);
                 }
-                catch(Exception e){                	
+                catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
                     //e.printStackTrace();
@@ -651,16 +651,16 @@ public class client
             		break;
             	}
             	System.out.println("Shutting system down...");
-            	try{    
+            	try{
             		if (rm.shutdown()) {
-            			
-            			System.exit(0);            			
-            			
-            		} else {        		
+
+            			System.exit(0);
+
+            		} else {
             			System.out.println("Couldn't shut system down, there are transactions still alive");
             		}
                 }
-                catch(Exception e){                	
+                catch(Exception e){
                     System.out.println("EXCEPTION:");
                     System.out.println(e.getMessage());
                     //e.printStackTrace();
@@ -673,30 +673,30 @@ public class client
             	}
             	Crash crashCondition = Crash.valueOf((String)arguments.get(1));
             	String rmName = (String)arguments.get(2);
-            	
+
             	System.out.printf("Crashing %s with %s...%n", rmName, crashCondition.toString());
             	try {
             		rm.setCrashCondition(crashCondition, rmName);
             	}
-            	catch(Exception e){                	
+            	catch(Exception e){
             		System.out.println("EXCEPTION:");
             		System.out.println(e.getMessage());
             		//e.printStackTrace();
             	}
             	break;
-            	
+
             case 28: // Remove crash condition
             	if (arguments.size() != 2) {
             		obj.wrongNumber();
             		break;
             	}
             	rmName = (String)arguments.get(2);
-            	
+
             	System.out.printf("Uncrashing %s...%n", rmName);
             	try {
             		rm.setCrashCondition(null, rmName);
             	}
-            	catch(Exception e){                	
+            	catch(Exception e){
             		System.out.println("EXCEPTION:");
             		System.out.println(e.getMessage());
             		//e.printStackTrace();
@@ -723,7 +723,7 @@ public class client
         }
         return arguments;
     }
-    
+
     public int findChoice(String argument)
     {
         if (argument.compareToIgnoreCase("help")==0)
@@ -779,7 +779,7 @@ public class client
         else if (argument.compareToIgnoreCase("shutdown")==0)
             return 26;
         else if (argument.compareToIgnoreCase("crash")==0)
-            return 27;     
+            return 27;
         else if (argument.compareToIgnoreCase("uncrash")==0)
             return 28;
         else
