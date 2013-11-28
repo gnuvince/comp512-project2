@@ -432,7 +432,7 @@ public class HotelManagerImpl implements ItemManager {
 							middleware.commitRecovery(xid, "hotel");
 						}
 						else {
-							middleware.abortRecovery(xid);
+							middleware.abortRecovery(xid, "hotel");
 						}
 					}
 				} catch (RemoteException e) {
