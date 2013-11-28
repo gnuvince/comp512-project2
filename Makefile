@@ -1,15 +1,15 @@
 BINDIR=make-bin
 
-SERVERHOST=0.0.0.0
+SERVERHOST=lab2-40.cs.mcgill.ca
 SERVERPORT=5005
 
-CARHOST=0.0.0.0
+CARHOST=lab2-26.cs.mcgill.ca
 CARPORT=5006
 
-FLIGHTHOST=0.0.0.0
+FLIGHTHOST=lab2-26.cs.mcgill.ca
 FLIGHTPORT=5007
 
-HOTELHOST=0.0.0.0
+HOTELHOST=lab2-40.cs.mcgill.ca
 HOTELPORT=5008
 
 all: compile jarfile 
@@ -87,13 +87,13 @@ recoverhotel:
 runserver:
 	CLASSPATH=$(BINDIR):ResInterface.jar rmiregistry $(SERVERPORT) &
 	# Debug mode	
-	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=9000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT) 
 	# Non-Debug
 	#java -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT)
 
 recoverserver:
 	# Debug mode	
-	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=9000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT)
+	java -Xdebug -Xnoagent -Xrunjdwp:transport=dt_socket,server=y,address=8000,suspend=n -cp $(BINDIR) -Djava.security.policy=./java.policy -Djava.rmi.server.codebase=file:$(BINDIR)/ResInterface.jar servercode.ResImpl.ResourceManagerImpl $(SERVERPORT) $(CARHOST) $(CARPORT) $(FLIGHTHOST) $(FLIGHTPORT) $(HOTELHOST) $(HOTELPORT)
 
 runclient:	
 	# Debug mode
